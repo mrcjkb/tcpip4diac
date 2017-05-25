@@ -16,7 +16,7 @@ classdef tcpip4diac1 < tcpip
         supportedTypeIDs = [66; 67; 68; 69; 70; 71; 72; 73; 74; 75; 80; 85];
     end
     methods
-        function obj = tcpip4diac1(networkRole, address, port)
+        function obj = tcpip4diac1(networkRole, address, port, varargin)
             if nargin < 3
                 port = 61500;
                 if nargin < 2
@@ -26,7 +26,10 @@ classdef tcpip4diac1 < tcpip
                     end
                 end
             end
-            obj@tcpip(address, port, 'NetworkRole', networkRole);
+            if strcmp(networkRole, 'server') && nargin < 2
+                address = '0.0.0.0';
+            end
+            obj@tcpip(address, port, 'NetworkRole', networkRole, varargin{:});
             if strcmp(networkRole, 'client')
                 obj.roleFlag = true;
             else
@@ -58,7 +61,6 @@ classdef tcpip4diac1 < tcpip
                 end
             end
         end
-        
         function rd = req(obj, data)
             if ~obj.roleFlag % Server object?
                 error('Method "req" only valid for client objects.')
@@ -66,11 +68,27 @@ classdef tcpip4diac1 < tcpip
             sd = obj.matlabToIEC61499(data);
             fwrite(obj, sd)
             if nargout > 0
-                warning('off', 'instrument:fread:unsuccessfulRead')
-                sd = fread(obj);
-                warning('on', 'instrument:fread:unsuccessfulRead')
-                rd = obj.iec61499ToMatlab(sd);
+                rd = waitForData(obj, get(obj, 'Timeout'));
             end
+        end
+        function rsp(obj, data)
+            if obj.roleFlag % Client object?
+                error('Method "rsp" only valid for server objects.')
+            end
+            sd = obj.matlabToIEC61499(data);
+            fwrite(obj, sd)
+        end
+        function rd = waitForData(obj, timeoutS)
+            if nargin < 2
+                timeoutS = inf;
+            end
+            tic
+            ba = get(obj, 'BytesAvailable');
+            while ba == 0 && toc < timeoutS
+                ba = get(obj, 'BytesAvailable');
+            end
+            sd = fread(obj, ba);
+            rd = obj.iec61499ToMatlab(sd);
         end
     end
     
@@ -125,7 +143,5 @@ classdef tcpip4diac1 < tcpip
                 end
             end
     end
-    
-    
 end
 
