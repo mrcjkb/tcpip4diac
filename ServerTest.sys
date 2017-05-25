@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE System SYSTEM "http://www.holobloc.com/xml/LibraryElement.dtd">
+<System Name="ServerTest">
+  <VersionInfo Author="Author" Organization="4DIAC-Consortium" Version="1.0"/>
+  <Application Name="ServerTestApp">
+    <SubAppNetwork>
+      <FB Name="F_ADD" Type="F_ADD" x="3040.0" y="1330.0">
+        <Parameter Name="IN2" Value="LREAL#3"/>
+      </FB>
+    </SubAppNetwork>
+  </Application>
+  <Device Name="FORTE_PC" Type="FORTE_PC" x="3155.0" y="1580.0">
+    <Attribute Name="Color" Value="102,113,195"/>
+    <Attribute Name="Profile" Value="HOLOBLOC"/>
+    <Parameter Name="MGR_ID" Value="&quot;localhost:61499&quot;"/>
+    <Resource Name="EMB_RES" Type="EMB_RES">
+      <FBNetwork>
+        <FB Name="F_ADD" Type="F_ADD" x="3705.0" y="1330.0">
+          <Parameter Name="IN2" Value="LREAL#3"/>
+        </FB>
+        <FB Name="SERVER_1" Type="SERVER_1" x="1425.0" y="665.0">
+          <Parameter Name="QI" Value="TRUE"/>
+          <Parameter Name="ID" Value="localhost:61500"/>
+        </FB>
+        <FB Name="LREAL2LREAL" Type="LREAL2LREAL" x="2565.0" y="1045.0"/>
+        <FB Name="LREAL2LREAL_0" Type="LREAL2LREAL" x="380.0" y="1425.0"/>
+        <EventConnections>
+          <Connection Destination="SERVER_1.INIT" Source="START.COLD" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="SERVER_1.INIT" Source="START.WARM" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="LREAL2LREAL.REQ" Source="SERVER_1.IND" dx1="300.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="F_ADD.REQ" Source="LREAL2LREAL.CNF" dx1="290.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="LREAL2LREAL_0.REQ" Source="F_ADD.CNF" dx1="0.0" dx2="0.0" dy="615.0"/>
+          <Connection Destination="SERVER_1.RSP" Source="LREAL2LREAL_0.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+        </EventConnections>
+        <DataConnections>
+          <Connection Destination="LREAL2LREAL.IN" Source="SERVER_1.RD_1" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="F_ADD.IN1" Source="LREAL2LREAL.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="LREAL2LREAL_0.IN" Source="F_ADD.OUT" dx1="220.0" dx2="-165.0" dy="240.0"/>
+          <Connection Destination="SERVER_1.SD_1" Source="LREAL2LREAL_0.OUT" dx1="280.0" dx2="0.0" dy="0.0"/>
+        </DataConnections>
+      </FBNetwork>
+    </Resource>
+  </Device>
+  <Mapping From="ServerTestApp.F_ADD" To="FORTE_PC.EMB_RES.F_ADD"/>
+  <Segment Name="Ethernet" Type="Ethernet" dx1="1500.0" x="3040.0" y="1155.0"/>
+  <Link CommResource="FORTE_PC" Comment="" SegmentName="Ethernet"/>
+</System>
