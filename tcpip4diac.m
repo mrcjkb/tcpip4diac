@@ -4,18 +4,27 @@ classdef tcpip4diac < tcpip
     %
     %Syntax:
     %
-    %   t = tcpip4diac(
-    properties% (Hidden, Access = 'protected')
+    %   t = tcpip4diac(networkRole);
+    %       --> Declares a t
+    %   t = tcpip4diac(networkRole, remotehost);
+    
+    properties (Hidden, Access = 'protected')
         % True for client, false for server
         roleFlag;
         % Amount of data inputs
         numDataInputs = 1;
+        % Amount of data outputs
+        numDataOutputs = 1;
         % Data inputs of the 4diac CLIENT/SERVER function block
         dataInputs;
+        % Data inputs of the 4diac CLIENT/SERVER function block
+        dataOutputs;
         % Size of the input byte arrays
-        byteArraySizes;
-        % Total size of the byte array that is sent over the network
-        totalByteArraySize;
+        iByteArraySizes;
+        % Size of the output byte arrays
+        oByteArraySizes;
+        % Total size of the input byte array that is sent over the network
+        totalIByteArraySize;
         % Identifiers for data types to cast to
         castIDs;
     end
@@ -34,40 +43,55 @@ classdef tcpip4diac < tcpip
         dataTypeByteNums = [1; 2; 3; 5; 9; 2; 3; 5; 9; 5; 9];
     end
     methods
-        function obj = tcpip4diac(networkRole, address, port, varargin)
+        function obj = tcpip4diac(networkRole, remotehost, port, varargin)
             if nargin < 3
                 port = 61500;
                 if nargin < 2
-                    address = 'localhost';
+                    remotehost = 'localhost';
                     if nargin < 1
                         networkRole = 'client';
                     end
                 end
             end
             if strcmp(networkRole, 'server') && nargin < 2
-                address = '0.0.0.0';
+                remotehost = '0.0.0.0';
             end
             if nargin > 3
                 % Check for additional inputs
                 p = inputParser;
                 addOptional(p, 'DataInputs', {'LREAL'}, @(x) tcpip4diac.validateDataInputs(x))
+                addOptional(p, 'DataOutputs', {'LREAL'}, @(x) tcpip4diac.validateDataInputs(x))
                 parse(p, varargin{:})
-                % Remove DataInputs option from varargin before passing to
+                % Remove additional options from varargin before passing to
                 % superclass constructor
-                tf = cellfun(@(x)isequal(x, 'DataInputs'), varargin);
-                if any(tf)
-                    tf(find(tf,1) + 1) = true;
-                    varargin = varargin(~tf);
+                addOpts = {'DataInputs'; 'DataOutputs'};
+                for i = 1:numel(addOpts)
+                    tf = cellfun(@(x)isequal(x, addOpts{i}), varargin);
+                    if any(tf)
+                        tf(find(tf,1) + 1) = true;
+                        varargin = varargin(~tf);
+                    end
                 end
             end
-            obj@tcpip(address, port, 'NetworkRole', networkRole, varargin{:});
-            if nargin > 3 % Additional params
+            obj@tcpip(remotehost, port, 'NetworkRole', networkRole, varargin{:});
+            if nargin > 3 % Set additional data input/output params
                 obj.dataInputs = p.Results.DataInputs;
+                obj.dataOutputs = p.Results.DataOutputs;
                 obj.numDataInputs = numel(obj.dataInputs);
-                tf = ismember(tcpip4diac.supportedIEC61499Types, obj.dataInputs);
-                obj.byteArraySizes = obj.dataTypeByteNums(tf);
-                obj.castIDs = obj.supportedMatlabTypes(tf);
-                obj.totalByteArraySize = sum(obj.byteArraySizes);
+                obj.numDataOutputs = numel(obj.dataOutputs);
+                obj.iByteArraySizes = zeros(obj.numDataInputs, 1);
+                obj.castIDs = cell(obj.numDataInputs, 1);
+                for i = 1:obj.numDataInputs
+                    tf = ismember(tcpip4diac.supportedIEC61499Types, obj.dataInputs{i});
+                    obj.iByteArraySizes(i) = obj.dataTypeByteNums(tf);
+                    obj.castIDs{i} = obj.supportedMatlabTypes{tf};
+                end
+                obj.totalIByteArraySize = sum(obj.iByteArraySizes);
+                obj.oByteArraySizes = zeros(obj.numDataOutputs, 1);
+                for i = 1:obj.numDataOutputs
+                    tf = ismember(tcpip4diac.supportedIEC61499Types, obj.dataOutputs{i});
+                    obj.oByteArraySizes(i) = obj.dataTypeByteNums(tf);
+                end
             end
             if strcmp(networkRole, 'client')
                 obj.roleFlag = true;
@@ -75,44 +99,117 @@ classdef tcpip4diac < tcpip
                 obj.roleFlag = false;
             end
         end
-        function [obj, qo, status] = init(obj, qi, host, port)
-            if nargin > 2
-                obj.RemoteHost = host;
-                obj.RemotePort = port;
+        function [qo, status, obj] = init(obj, qi, remotehost, port)
+            if nargin > 2 && nargout > 2 % Change address?
+                obj.RemoteHost = remotehost;
+                if nargin > 3
+                    obj.RemotePort = port;
+                end
             end
-            if qi
+            if qi % Init
                 try
                     fopen(obj);
-                    qo = true;
-                    status = 'OK';
+                    if nargout > 0
+                        qo = true;
+                        if nargout > 1
+                            status = 'OK';
+                        end
+                    end
                 catch ME
-                    qo = false;
-                    status = ME.message;
+                    if nargout > 0
+                        qo = false;
+                        if nargout > 1
+                            status = ME.message;
+                        end
+                    end
                 end
-            else
+            else % Deinit
                 try
                     fclose(obj);
-                    qo = false;
-                    status = 'OK';
+                    if nargout > 0
+                        qo = false;
+                        if nargout > 1
+                            status = 'OK';
+                        end
+                    end
                 catch ME
-                    qo = false;
-                    status = ME.message;
+                    if nargout > 0
+                        qo = false;
+                        if nargout > 1
+                            status = ME.message;
+                        end
+                    end
                 end
             end
         end
         function varargout = req(obj, data1, varargin)
-            if ~obj.roleFlag % Server object?
+            if nargout ~= obj.numDataOutputs
+                error('Wrong amount of output arguments.')
+            elseif nargin - 1 ~= obj.numDataInputs
+                error('Wrong amount of input arguments.')
+            elseif ~obj.roleFlag % Server object?
                 error('Method "req" only valid for client objects.')
             end
+            if nargin > 1
+                sd = obj.matlabToByteData(data1, varargin{:});
+                fwrite(obj, sd)
+            else
+                fwrite(obj, 5) % No data inputs
+            end
+            [varargout{1:nargout}] = waitForData(obj);
+        end
+        function rsp(obj, data1, varargin)
+            if obj.roleFlag % Client object?
+                error('Method "rsp" only valid for server objects.')
+            end
+            sd = obj.matlabToByteData(data1, varargin{:});
+            fwrite(obj, sd)
+        end
+        function varargout = waitForData(obj, timeoutS)
+            if nargout ~= obj.numDataOutputs
+                error('Wrong amount of output arguments.')
+            end
+            if nargin < 2
+                timeoutS = inf;
+            end
+            tic
+            ba = get(obj, 'BytesAvailable');
+            while ba == 0
+                ba = get(obj, 'BytesAvailable');
+                if toc > timeoutS
+                    error('Connection timed out.')
+                end
+            end
+            sd = fread(obj, ba);
+            if obj.numDataOutputs == 1
+                varargout{1} = obj.iec61499ToMatlab(sd);
+            elseif obj.numDataOutputs == 0
+                varargout = {};
+            else
+                varargout{nargout} = [];
+                lastIdx = obj.oByteArraySizes(1);
+                varargout{1} = obj.iec61499ToMatlab(sd(1:lastIdx));
+                for i = 2:obj.numDataOutputs
+                    n = obj.oByteArraySizes(i);
+                    varargout{i} = obj.iec61499ToMatlab(sd(lastIdx+1:lastIdx+n));
+                    lastIdx = lastIdx + n;
+                end
+            end
+        end
+    end
+    
+    methods (Access = 'protected')
+        function sd = matlabToByteData(obj, data1, varargin)
             if obj.numDataInputs > 1 % multiple inputs
-                sd = zeros(obj.totalByteArraySize, 1, 'uint8');
-                lastIdx = obj.byteArraySizes(1);
+                sd = zeros(obj.totalIByteArraySize, 1, 'uint8');
+                % First data input
+                lastIdx = obj.iByteArraySizes(1);
                 data1 = cast(data1, obj.castIDs{1});
                 sd(1:lastIdx) = obj.matlabToIEC61499(data1);
                 for i = 2:obj.numDataInputs
                     datan = cast(varargin{i-1}, obj.castIDs{i});
                     datan = obj.matlabToIEC61499(datan);
-                    n = obj.byteArraySizes(i);
+                    n = obj.iByteArraySizes(i);
                     if numel(datan) ~= n
                         error('Data type mismatch')
                     end
@@ -122,42 +219,7 @@ classdef tcpip4diac < tcpip
             else % only 1 input
                 sd = obj.matlabToIEC61499(data1);
             end
-            fwrite(obj, sd)
-            [varargout{1:nargout}] = waitForData(obj, get(obj, 'Timeout'));
         end
-        function rsp(obj, data)
-            if obj.roleFlag % Client object?
-                error('Method "rsp" only valid for server objects.')
-            end
-            sd = obj.matlabToIEC61499(data);
-            fwrite(obj, sd)
-        end
-        function varargout = waitForData(obj, timeoutS)
-            if nargin < 2
-                timeoutS = inf;
-            end
-            tic
-            ba = get(obj, 'BytesAvailable');
-            while ba == 0 && toc < timeoutS
-                ba = get(obj, 'BytesAvailable');
-            end
-            sd = fread(obj, ba);
-            if obj.numDataInputs == 1
-                varargout{1} = obj.iec61499ToMatlab(sd);
-            else
-                varargout{nargout} = [];
-                lastIdx = obj.byteArraySizes(1);
-                varargout{1} = obj.iec61499ToMatlab(sd(1:lastIdx));
-                for i = 2:obj.numDataInputs
-                    n = obj.byteArraySizes(i);
-                    varargout{i} = obj.iec61499ToMatlab(sd(lastIdx+1:lastIdx+n));
-                    lastIdx = lastIdx + n;
-                end
-            end
-        end
-    end
-    
-    methods (Access = 'protected')
         function sd = matlabToIEC61499(obj, data)
             [typeID, castID] = obj.getTypeID(data);
             % Convert to appropriate byte-data that 4diac server FB can
@@ -215,8 +277,10 @@ classdef tcpip4diac < tcpip
                 error('Expected a cell array for DataInputs')
             end
             tf = true;
-            for i = 1:numel(x)
-                tf = tf & ischar(validatestring(x{i}, tcpip4diac.supportedIEC61499Types(1:end-2)));
+            if ~isempty(x) % Empty if set to zero
+                for i = 1:numel(x)
+                    tf = tf & ischar(validatestring(x{i}, tcpip4diac.supportedIEC61499Types(1:end-2)));
+                end
             end
         end
     end
