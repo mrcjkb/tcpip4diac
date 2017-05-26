@@ -159,7 +159,9 @@ classdef tcpip4diac < tcpip
             [varargout{1:nargout}] = waitForData(obj);
         end
         function rsp(obj, data1, varargin)
-            if obj.roleFlag % Client object?
+            if nargin - 1 ~= obj.numDataInputs
+                error('Wrong amount of input arguments.')
+            elseif obj.roleFlag % Client object?
                 error('Method "rsp" only valid for server objects.')
             end
             sd = obj.matlabToByteData(data1, varargin{:});
