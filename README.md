@@ -78,18 +78,36 @@ To send a response, use the rsp() method:
 	>> rsp(t, in1, ... inN)
 
 
-An 4diac system "ServerTest" is provided as a demo.
-It provides similar functionality as the Xplus4 application that comes with 4diac-IDE.
-To test it, import it into 4diac-IDE and deploy it to FORTE.
-Then run the following code in Matlab:
-
-	>> t = tcpip4diac('client');
-	>> init(t, 1)
-	>> out = req(t, 5); % returns 8
+As a demo for both the server and client functionality, the 4diac systems ServerTest.sys and ClientTest.sys are provided along
+with the demo script demo_script.m
 
 Aside from the above methods, the regular tcpip methods work, too.
 Using fwrite() will send byte-data and using fread() will receive byte-data, for example.
 
+The currently supported data types and their correspondences are listed as follows:
+
+   IEC 61499 data type  |		Matlab data type		|			Notes
+---------------------------------------------------------------------------------------
+		BOOL			| 			logical				|			  -
+		SINT			|			int8				|			  -
+		INT 			|			int16				|			  -
+		DINT			|			int32				|			  -
+		LINT			|			int64				|			  -
+		USINT			|			uint8				|			  -
+		UINT			|			uint16				|			  -
+		UDINT			|			uint32				|			  -
+		ULINT			|			uint64				|			  -
+		REAL			|			single				|			  -
+		LREAL			|			double				|			  -
+		STRING			|			char				|	only supported for objects 
+						|								|	with max. 1 input/output.
+		WSTRING			|			string				|	only supported for objects 
+						|								|	with max. 1 input/output.
+						|								|	Requires Matlab R2016b or
+						|								|	above.
+
+Please report bugs in the GitHub issue tracker. I am also glad for anyone who commits improvements.						
+						
 SEE ALSO: tcpip
 
 Author: Marc Jakobi, May 2017, HTW-Berlin
