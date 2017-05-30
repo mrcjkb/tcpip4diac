@@ -398,7 +398,7 @@ classdef tcpip4diac < tcpip
         end
         function uv = datevec2unixvec(dv)
             ud = double(int32(floor(86400 * (datenum(dv) - datenum('01-Jan-1970'))))); % unix date
-            ud = (ud - 3600) * 1000; % Milliseconds + correct 1 hour offset of FORTE from unix time
+            ud = (ud - 2*3600) * 1000; % Milliseconds + correct 1 hour offset of FORTE from unix time
             uv = zeros(9, 1);
             uv(1) = 79;
             for i = 2:9
@@ -409,7 +409,8 @@ classdef tcpip4diac < tcpip
             uv(end) = uv(end) + 1; % Correct last millisecond
         end
         function dv = unixvec2datevec(uv)
-            ud = sum(uv(2:end) .* (256.^tcpip4diac.tv)) / 1000 + 3600;
+            % Unix time
+            ud = sum(uv(2:end) .* (256.^tcpip4diac.tv)) / 1000 + 2*3600; % Correct offset of 2 hours & convert to milliseconds
             dv = datevec(ud / 86400 + datenum('01-Jan-1970'));
         end
         function tf = validateDataInputs(x)
