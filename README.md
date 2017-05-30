@@ -105,6 +105,8 @@ The currently supported data types and their correspondences are listed as follo
 						|								|	with max. 1 input/output.
 						|								|	Requires Matlab R2016b or
 						|								|	above.
+		DATE_AND_TIME   |           1x6 double          |   According to Matlab's datevec 
+                        |                               |   format
 
 Please report bugs in the GitHub issue tracker. I am also glad for anyone who commits improvements.						
 						

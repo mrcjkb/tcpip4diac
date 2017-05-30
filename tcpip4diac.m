@@ -102,6 +102,8 @@ classdef tcpip4diac < tcpip
     % 						|								|	with max. 1 input/output.
     % 						|								|	Requires Matlab R2016b or
     % 						|								|	above.
+    %       DATE_AND_TIME   |           1x6 double          |   According to Matlab's datevec 
+    %                       |                               |   format
     %
     % Please report bugs in the GitHub issue tracker. I am also glad for anyone who commits improvements.
     %
@@ -132,16 +134,18 @@ classdef tcpip4diac < tcpip
     properties (Constant)
         % Matlab equivalents to supported IEC 61499 data types
         supportedMatlabTypes = {'logical'; 'int8'; 'int16'; 'int32'; 'int64'; ...
-            'uint8'; 'uint16'; 'uint32'; 'uint64'; 'single'; 'double'; 'char'; 'string'};
+            'uint8'; 'uint16'; 'uint32'; 'uint64'; 'single'; 'double'; 'char'; 'string'; 'datetime'};
         % Supported IEC 61499 data types
         supportedIEC61499Types = {'BOOL'; 'SINT'; 'INT'; 'DINT'; 'LINT'; ...
-            'USINT'; 'UINT'; 'UDINT'; 'ULINT'; 'REAL'; 'LREAL'; 'STRING'; 'WSTRING'};
+            'USINT'; 'UINT'; 'UDINT'; 'ULINT'; 'REAL'; 'LREAL'; 'STRING'; 'WSTRING'; 'DATE_AND_TIME'};
         % Representative IDs of supported IEC 61499 data types
-        supportedTypeIDs = [66; 67; 68; 69; 70; 71; 72; 73; 74; 75; 80; 85];
+        supportedTypeIDs = [66; 67; 68; 69; 70; 71; 72; 73; 74; 75; 80; 85; 79];
         % Byte numbers of the respective data types (including typeIDs).
         % STRING and WSTRING are currently not supported for multiple
         % inputs due to the fact that they have variable length bytes.
-        dataTypeByteNums = [1; 2; 3; 5; 9; 2; 3; 5; 9; 5; 9];
+        dataTypeByteNums = [1; 2; 3; 5; 9; 2; 3; 5; 9; 5; 9; 9];
+        % Factors for unix time vector conversion
+        tv = [7; 6; 5; 4; 3; 2; 1; 0];
     end
     methods
         function obj = tcpip4diac(networkRole, remotehost, port, varargin)
@@ -303,6 +307,7 @@ classdef tcpip4diac < tcpip
     
     methods (Access = 'protected')
         function sd = matlabToByteData(obj, data1, varargin)
+            tcpip4diac.validateInputSize(data1)
             if obj.numDataInputs > 1 % multiple inputs
                 sd = zeros(obj.totalIByteArraySize, 1, 'uint8');
                 % First data input
@@ -310,6 +315,7 @@ classdef tcpip4diac < tcpip
                 data1 = cast(data1, obj.castIDs{1});
                 sd(1:lastIdx) = obj.matlabToIEC61499(data1);
                 for i = 2:obj.numDataInputs
+                    tcpip4diac.validateInputSize(varargin{i-1})
                     datan = cast(varargin{i-1}, obj.castIDs{i});
                     datan = obj.matlabToIEC61499(datan);
                     n = obj.iByteArraySizes(i);
@@ -330,7 +336,12 @@ classdef tcpip4diac < tcpip
             if isempty(typeID) % BOOL
                 sd = 64 * data + 65 * ~data;
             elseif isnumeric(data) % SINT...UDINT / REAL & LREAL
-                sd = [typeID, fliplr(typecast(data, 'uint8'))]';
+                if numel(data) == 6 % datevec
+                    % Convert to UNIX
+                    sd = tcpip4diac.datevec2unixvec(data);
+                else % regular double
+                    sd = [typeID, fliplr(typecast(data, 'uint8'))]';
+                end
             elseif strcmp(castID, 'char') % STRING
                 sd = [typeID; 0; 4; uint8(data)'];
             elseif strcmp(castID, 'string') % WSTRING
@@ -350,6 +361,8 @@ classdef tcpip4diac < tcpip
                         rd = char(uint8(sd(4:end))');
                     elseif typeID == 85 % WSTRING
                         rd = string(char((uint8(sd(7:2:end-2)'))));
+                    elseif typeID == 79 % DATE_AND_TIME
+                        rd = tcpip4diac.unixvec2datevec(sd);
                     else % SINT...UDINT / REAL & LREAL
                         rd = typecast(flipud(uint8(sd(2:end))), castID);
                     end
@@ -375,6 +388,30 @@ classdef tcpip4diac < tcpip
     end
     
     methods (Static, Access = 'protected')
+        function validateInputSize(dat)
+            ne = numel(dat);
+            if ne ~= 1
+                if ~isnumeric(dat) || ne ~= 6
+                    error('Data input has wrong number of elements.')
+                end
+            end
+        end
+        function uv = datevec2unixvec(dv)
+            ud = double(int32(floor(86400 * (datenum(dv) - datenum('01-Jan-1970'))))); % unix date
+            ud = (ud - 3600) * 1000; % Milliseconds + correct 1 hour offset of FORTE from unix time
+            uv = zeros(9, 1);
+            uv(1) = 79;
+            for i = 2:9
+                uv(i) = floor(ud / (256.^tcpip4diac.tv(i-1)));
+                ud = ud - uv(i) * (256.^tcpip4diac.tv(i-1));
+            end
+            uv = uint8(uv);
+            uv(end) = uv(end) + 1; % Correct last millisecond
+        end
+        function dv = unixvec2datevec(uv)
+            ud = sum(uv(2:end) .* (256.^tcpip4diac.tv)) / 1000 + 3600;
+            dv = datevec(ud / 86400 + datenum('01-Jan-1970'));
+        end
         function tf = validateDataInputs(x)
             if ~iscell(x)
                 error('Expected a cell array for DataInputs')
