@@ -43,11 +43,6 @@ Server with no inputs and 1 output
  	>> dataInputs = {};
  	>> t = tcpip4diac('server', '0.0.0.0', 61500, 'DataInputs', dataInputs);
 
- Because STRING and WSTRING have variable byte lengths, only a single STRING or WSTRING output is supported and it
- must be the last output. For receival of multiple STRING/WSTRING data from 4diac, it is advised to combine them 
- into a single STRING. Regular expressions (regex) or strfind can be used to separate the received data.
- Matlab currently does not support wchar, so use of STRING is recommended.
-
  To initialize or deinitialize the connection, use the following syntax, where qi is true for initialization and false for deinitialization:
 
  	>> init(t, qi)  Omit output arguments
@@ -72,7 +67,11 @@ Server with no inputs and 1 output
     >> inData = {in1, in2, in3, ..., inN};  cell array of inputs
     >> [out1, out2, out3, ..., outM] = req(t, inData);
 
-
+To send DATE_AND_TIME data, use Matlab's "datevec" format:
+    >> in1 = datevec(now);
+    >> [out1, out2, out3, ..., outM] = req(t, in1);
+	
+	
  In the server role, use the waitForData function to await data from a CLIENT FB. This will not return until either a response is received
  or a timeout (specified in seconds) is reached. The default timeout is inf, if not specified.
  Unfortunately, Matlab's TCP/IP implementation does not appear to provide a method for using callback functions.
@@ -112,16 +111,13 @@ The currently supported data types and their correspondences are listed as follo
  		ULINT			|			uint64				|			  -
  		REAL			|			single				|			  -
  		LREAL			|			double				|			  -
- 		STRING			|			char				|	only single STRING or WSTRING                            
-                        |                               |   output supported. Must be the 
-                        |                               |   last output.
- 		WSTRING			|			string				|	only single WSTRING or STRING  
-                        |                               |   output supported. Must be the 
-                        |                               |   last output.
- 						|								|	Requires Matlab R2016b or
- 						|								|	above (cast to string)
-       DATE_AND_TIME    |           1x6 double          |   According to Matlab's datevec 
-                        |                               |   format
+ 		STRING			|			char				|             -
+  		WSTRING			|			string				|	NOT RECOMMENDED. Use STRING 
+                        |                               |   instead.
+   						|								|	Requires Matlab R2016b or
+   						|								|	above (cast to string).
+        DATE_AND_TIME   |           1x6 double          |   According to Matlab's datevec
+                        |                               |   format.
 
  Please report bugs in the GitHub issue tracker. I am also glad for anyone who commits improvements.
 

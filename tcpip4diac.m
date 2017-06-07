@@ -39,11 +39,6 @@ classdef tcpip4diac < tcpip
     % 	>> dataInputs = {};
     % 	>> t = tcpip4diac('server', '0.0.0.0', 61500, 'DataInputs', dataInputs);
     %
-    % Because STRING and WSTRING have variable byte lengths, only a single STRING or WSTRING output is supported and it
-    % must be the last output. For receival of multiple STRING/WSTRING data from 4diac, it is advised to combine them
-    % into a single STRING. Regular expressions (regex) or strfind can be used to separate the received data.
-    % Matlab currently does not support wchar, so use of STRING is recommended.
-    %
     % To initialize or deinitialize the connection, use the following syntax, where qi is true for initialization and false for deinitialization:
     %
     % 	>> init(t, qi) % Omit output arguments
@@ -67,6 +62,10 @@ classdef tcpip4diac < tcpip
     % For multiple data inputs:
     %   >> inData = {in1, in2, in3, ..., inN}; % cell-array of inputs
     % 	>> [out1, out2, out3, ..., outM] = req(t, inData);
+    %
+    % To send DATE_AND_TIME data, use Matlab's "datevec" format:
+    %   >> in1 = datevec(now);
+    %   >> [out1, out2, out3, ..., outM] = req(t, in1);
     %
     %
     % In the server role, use the waitForData function to await data from a CLIENT FB. This will not return until either a response is received
@@ -108,16 +107,13 @@ classdef tcpip4diac < tcpip
     % 		ULINT			|			uint64				|			  -
     % 		REAL			|			single				|			  -
     % 		LREAL			|			double				|			  -
-    % 		STRING			|			char				|	only single STRING or WSTRING
-    %                       |                               |   output supported. Must be the
-    %                       |                               |   last output.
-    % 		WSTRING			|			string				|	only single WSTRING or STRING
-    %                       |                               |   output supported. Must be the
-    %                       |                               |   last output.
+    % 		STRING			|			char				|             -
+    % 		WSTRING			|			string				|	NOT RECOMMENDED. Use STRING 
+    %                       |                               |   instead.
     % 						|								|	Requires Matlab R2016b or
-    % 						|								|	above (cast to string)
+    % 						|								|	above (cast to string).
     %       DATE_AND_TIME   |           1x6 double          |   According to Matlab's datevec
-    %                       |                               |   format
+    %                       |                               |   format.
     %
     % Please report bugs in the GitHub issue tracker. I am also glad for anyone who commits improvements.
     %
@@ -333,6 +329,11 @@ classdef tcpip4diac < tcpip
             %  For multiple data inputs:
             %     >> inData = {in1, in2, in3, ..., inN};  cell-array of inputs
             %  	  >> [out1, out2, out3, ..., outM] = req(t, inData);
+            %
+            % To send DATE_AND_TIME data, use Matlab's "datevec" format:
+            %   >> in1 = datevec(now);
+            %   >> [out1, out2, out3, ..., outM] = req(t, in1);
+            %
             if nargout ~= obj.numDataOutputs
                 error('Wrong amount of output arguments.')
             elseif numel(data) ~= obj.numDataInputs
@@ -402,11 +403,16 @@ classdef tcpip4diac < tcpip
                 varargout{1} = obj.iec61499ToMatlab(sd(1:lastIdx));
                 for i = 2:obj.numDataOutputs
                     n = obj.oByteArraySizes(i);
-                    if ~isnan(n)
-                        varargout{i} = obj.iec61499ToMatlab(sd(lastIdx+1:lastIdx+n));
-                    else
-                        varargout{i} = obj.iec61499ToMatlab(sd(lastIdx+1:end));
+                    if isnan(n)
+                        n = sd(lastIdx+3); % length of character
+                        if strcmp(obj.getCastID(sd(lastIdx+1)), 'string')
+                            n = n * 2 + 3; % WSTRING
+                            % + 3 to account for typeID, 0 and number of characters
+                        else
+                            n = n + 3; % STRING
+                        end
                     end
+                    varargout{i} = obj.iec61499ToMatlab(sd(lastIdx+1:lastIdx+n));
                     lastIdx = lastIdx + n;
                 end
             end
@@ -468,21 +474,21 @@ classdef tcpip4diac < tcpip
             sd = [typeID; sd];
         end
         function rd = iec61499ToMatlab(obj, sd)
-                if numel(sd) == 1 % BOOL
-                    rd = sd == 64;
-                else
-                    typeID = sd(1);
-                    castID = obj.getCastID(typeID);
-                    if typeID == 80 % STRING
-                        rd = char(uint8(sd(4:end))');
-                    elseif typeID == 85 % WSTRING
-                        rd = string(char((uint8(sd(7:2:end-2)'))));
-                    elseif typeID == 79 % DATE_AND_TIME
-                        rd = tcpip4diac.unixvec2datevec(sd);
-                    else % SINT...UDINT / REAL & LREAL
-                        rd = typecast(flipud(uint8(sd(2:end))), castID);
-                    end
+            if numel(sd) == 1 % BOOL
+                rd = sd == 64;
+            else
+                typeID = sd(1);
+                castID = obj.getCastID(typeID);
+                if typeID == 80 % STRING
+                    rd = char(uint8(sd(4:end))');
+                elseif typeID == 85 % WSTRING
+                    rd = string(char((uint8(sd(5:2:end)'))));
+                elseif typeID == 79 % DATE_AND_TIME
+                    rd = tcpip4diac.unixvec2datevec(sd);
+                else % SINT...UDINT / REAL & LREAL
+                    rd = typecast(flipud(uint8(sd(2:end))), castID);
                 end
+            end
         end
         function [typeID, castID] = getTypeID(obj, data)
             castID = class(data);
@@ -544,18 +550,10 @@ classdef tcpip4diac < tcpip
         end
         function tf = validateDataOutputs(x)
             % Make sure 'WSTRING' and 'STRING' only occur once
-            tf = ismember(x, {'WSTRING'; 'STRING'});
-            if sum(tf) > 1
-                error(['Currently only a single WSTRING or STRING output is supported. ', ...
-                    'If possible, combine multiple STRING/WSTRING inputs in 4diac to a single STRING input. ', ...
-                    'Regular expressions (regex) or strfind can be used to separate the received data.', ...
-                    'Note: Matlab currently does not support the wchar data type, so use of STRING is advised.'])
+            if any(ismember(x, 'WSTRING'))
+                warning('Matlab currently does not support wide characters (wchar), so use of STRING is advised.')
             end
-            % Make sure 'WSTRING'/'STRING' entry is the last output
-            if find(tf, 1) ~= numel(x)
-                error('WSTRING/STRING must be the last output.')
-            end
-            % Validate the rest using input validation method
+            % Validate using input validation method
             tf = tcpip4diac.validateDataInputs(x);
         end
     end
