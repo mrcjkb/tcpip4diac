@@ -379,8 +379,6 @@ classdef tcpip4diac < tcpip
             %  	>> [out1, out2, out3, ..., outN] = waitForData(t, timeoutS);
             if nargout ~= obj.numDataOutputs
                 error('Wrong amount of output arguments.')
-            elseif obj.roleFlag % Client object?
-                error('Method "waitForData" only valid for server objects.')
             end
             if nargin < 2
                 timeoutS = inf;
@@ -417,8 +415,8 @@ classdef tcpip4diac < tcpip
     
     methods (Access = 'protected')
         function sd = matlabToByteData(obj, data)
-            tcpip4diac.validateInputSize(data{1})  
             if obj.numDataInputs > 1 % multiple inputs
+                tcpip4diac.validateInputSize(data{1}) 
                 sd = zeros(obj.totalIByteArraySize, 1, 'uint8');
                 % First data input
                 lastIdx = obj.iByteArraySizes(1);
@@ -442,6 +440,7 @@ classdef tcpip4diac < tcpip
                     lastIdx = lastIdx + n;
                 end
             else % only 1 input
+                tcpip4diac.validateInputSize(data) 
                 sd = obj.matlabToIEC61499(data);
             end
         end
