@@ -39,6 +39,10 @@ classdef tcpip4diac < tcpip
     % 	>> dataInputs = {};
     % 	>> t = tcpip4diac('server', '0.0.0.0', 61500, 'DataInputs', dataInputs);
     %
+    % Because STRING and WSTRING have variable byte lengths, only a single STRING or WSTRING output is supported and it
+    % must be the last output. For receival of multiple STRING/WSTRING data from 4diac, it is advised to combine them 
+    % into a single STRING. Regular expressions (regex) or strfind can be used to separate the received data.
+    % Matlab currently does not support wchar, so use of STRING is recommended.
     %
     % To initialize or deinitialize the connection, use the following syntax, where qi is true for initialization and false for deinitialization:
     %
@@ -52,12 +56,17 @@ classdef tcpip4diac < tcpip
     %
     %
     % In the client role, use the req() function to send requests to a SERVER FB. This method will not return until a response is received.
-    % For multiple data inputs, the inputs in1, ..., inN (where N is the number of CSIFB outputs) are automatically casted to the respective
-    % ata types expected by the IEC 61499 CSIFB. The returned output data types out1, ... outM (where N is the number of CSIFB inputs)
+    % For multiple data inputs, the inputs in1, ..., inN (where N is the number of CSIFB inputs) are automatically casted to the respective
+    % data types expected by the IEC 61499 CSIFB. The returned output data types out1, ... outM (where N is the number of CSIFB inputs)
     % depend on the corresponding IEC 61499 FB input data types. For CSIFBs with a single data input, the input in1 must be casted to the
     % corresponding Matlab data type before passing it to the req() function.
     %
-    % 	>> [out1, out2, out3, ..., outM] = req(t, in1, in2, in3, ..., inN);
+    % For a single data input:
+    %   >> [out1, out2, out3, ..., outM] = req(t, in1);
+    %
+    % For multiple data inputs:
+    %   >> inData = {in1, in2, in3, ..., inN}; % cell-array of inputs
+    % 	>> [out1, out2, out3, ..., outM] = req(t, inData);
     %
     %
     % In the server role, use the waitForData function to await data from a CLIENT FB. This will not return until either a response is received
@@ -68,14 +77,13 @@ classdef tcpip4diac < tcpip
     % 	>> [out1, out2, out3, ..., outN] = waitForData(t);
     % 	>> [out1, out2, out3, ..., outN] = waitForData(t, timeoutS);
     %
-    % Currently, only numeric data types and BOOL are supported for multiple data inputs/outputs.
     % To send a response, use the rsp() method:
     %
     % 	>> rsp(t, in1, ... inN)
     %
     %
     % An 4diac system "ServerTest" is provided as a demo.
-    % It provides similar functionality as the Xplus4 application that comes with 4diac-IDE.
+    % It provides similar functionality as the Xplus3 application that comes with 4diac-IDE.
     % To test it, import it into 4diac-IDE and deploy it to FORTE.
     % Then run the following code in Matlab:
     %
@@ -122,7 +130,7 @@ classdef tcpip4diac < tcpip
         % Byte numbers of the respective data types (including typeIDs).
         % STRING and WSTRING are currently not supported for multiple
         % inputs due to the fact that they have variable length bytes.
-        dataTypeByteNums = [1; 2; 3; 5; 9; 2; 3; 5; 9; 5; 9];
+        dataTypeByteNums = [1; 2; 3; 5; 9; 2; 3; 5; 9; 5; 9; nan; nan];
     end
     methods
         function obj = tcpip4diac(networkRole, remotehost, port, varargin)
@@ -142,7 +150,7 @@ classdef tcpip4diac < tcpip
                 % Check for additional inputs
                 p = inputParser;
                 addOptional(p, 'DataInputs', {'LREAL'}, @(x) tcpip4diac.validateDataInputs(x))
-                addOptional(p, 'DataOutputs', {'LREAL'}, @(x) tcpip4diac.validateDataInputs(x))
+                addOptional(p, 'DataOutputs', {'LREAL'}, @(x) tcpip4diac.validateDataOutputs(x))
                 parse(p, varargin{:})
                 % Remove additional options from varargin before passing to
                 % superclass constructor
@@ -224,29 +232,29 @@ classdef tcpip4diac < tcpip
                 end
             end
         end
-        function varargout = req(obj, data1, varargin)
+        function varargout = req(obj, data)
             if nargout ~= obj.numDataOutputs
                 error('Wrong amount of output arguments.')
-            elseif nargin - 1 ~= obj.numDataInputs
+            elseif numel(data) ~= obj.numDataInputs
                 error('Wrong amount of input arguments.')
             elseif ~obj.roleFlag % Server object?
                 error('Method "req" only valid for client objects.')
             end
             if nargin > 1
-                sd = obj.matlabToByteData(data1, varargin{:});
+                sd = obj.matlabToByteData(data);
                 fwrite(obj, sd)
             else
                 fwrite(obj, 5) % No data inputs
             end
             [varargout{1:nargout}] = waitForData(obj);
         end
-        function rsp(obj, data1, varargin)
-            if nargin - 1 ~= obj.numDataInputs
+        function rsp(obj, data)
+            if numel(data) ~= obj.numDataInputs
                 error('Wrong amount of input arguments.')
             elseif obj.roleFlag % Client object?
                 error('Method "rsp" only valid for server objects.')
             end
-            sd = obj.matlabToByteData(data1, varargin{:});
+            sd = obj.matlabToByteData(data);
             fwrite(obj, sd)
         end
         function varargout = waitForData(obj, timeoutS)
@@ -283,25 +291,27 @@ classdef tcpip4diac < tcpip
     end
     
     methods (Access = 'protected')
-        function sd = matlabToByteData(obj, data1, varargin)
+        function sd = matlabToByteData(obj, data)
             if obj.numDataInputs > 1 % multiple inputs
                 sd = zeros(obj.totalIByteArraySize, 1, 'uint8');
                 % First data input
                 lastIdx = obj.iByteArraySizes(1);
-                data1 = cast(data1, obj.castIDs{1});
+                data1 = cast(data{1}, obj.castIDs{1});
                 sd(1:lastIdx) = obj.matlabToIEC61499(data1);
                 for i = 2:obj.numDataInputs
-                    datan = cast(varargin{i-1}, obj.castIDs{i});
+                    datan = cast(data{i-1}, obj.castIDs{i});
                     datan = obj.matlabToIEC61499(datan);
                     n = obj.iByteArraySizes(i);
-                    if numel(datan) ~= n
+                    % Check for correct number of bytes (except for STRING
+                    % and WSTRING)
+                    if numel(datan) ~= n && ~isstring(datan) && ~ischar(datan)
                         error('Data type mismatch')
                     end
                     sd(lastIdx+1:lastIdx+n) = datan;
                     lastIdx = lastIdx + n;
                 end
             else % only 1 input
-                sd = obj.matlabToIEC61499(data1);
+                sd = obj.matlabToIEC61499(data);
             end
         end
         function sd = matlabToIEC61499(obj, data)
@@ -363,9 +373,25 @@ classdef tcpip4diac < tcpip
             tf = true;
             if ~isempty(x) % Empty if set to zero
                 for i = 1:numel(x)
-                    tf = tf & ischar(validatestring(x{i}, tcpip4diac.supportedIEC61499Types(1:end-2)));
+                    tf = tf & ischar(validatestring(x{i}, tcpip4diac.supportedIEC61499Types));
                 end
             end
+        end
+        function tf = validateDataOutputs(x)
+            % Make sure 'WSTRING' and 'STRING' only occur once
+            tf = ismember(x, {'WSTRING'; 'STRING'});
+            if sum(tf) > 1
+                error(['Currently only a single WSTRING or STRING output is supported. ', ...
+                    'If possible, combine multiple STRING/WSTRING inputs in 4diac to a single STRING input. ', ...
+                    'Regular expressions (regex) or strfind can be used to separate the received data.', ...
+                    'Note: Matlab currently does not support the wchar data type, so use of STRING is advised.'])
+            end
+            % Make sure 'WSTRING'/'STRING' entry is the last output
+            if find(tf, 1) ~= numel(x)
+                error('WSTRING/STRING must be the last output.')
+            end
+            % Validate the rest using input validation method
+            tf = tcpip4diac.validateDataInputs(x, ind);
         end
     end
 end
