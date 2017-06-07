@@ -2,37 +2,60 @@
 <!DOCTYPE System SYSTEM "http://www.holobloc.com/xml/LibraryElement.dtd">
 <System Name="ClientTest">
   <VersionInfo Author="Author" Organization="4DIAC-Consortium" Version="1.0"/>
-  <Application Name="ClientTestApp"/>
+  <Application Name="ClientTestApp">
+    <SubAppNetwork>
+      <FB Name="CLIENT_1_0" Type="CLIENT_1" x="3280.0" y="1480.0">
+        <Parameter Name="QI" Value="TRUE"/>
+        <Parameter Name="ID" Value="141:45:209:119:61500"/>
+      </FB>
+      <FB Name="INT2INT_0" Type="INT2INT" x="4370.0" y="1520.0"/>
+      <FB Name="E_DELAY_0" Type="E_DELAY" x="2090.0" y="1710.0">
+        <Parameter Name="DT" Value="T#1s"/>
+      </FB>
+      <EventConnections>
+        <Connection Destination="CLIENT_1_0.REQ" Source="E_DELAY_0.EO" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="E_DELAY_0.START" Source="CLIENT_1_0.INITO" dx1="0.0" dx2="-245.0" dy="685.0"/>
+        <Connection Destination="INT2INT_0.REQ" Source="CLIENT_1_0.CNF" dx1="405.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="E_DELAY_0.START" Source="INT2INT_0.CNF" dx1="135.0" dx2="-245.0" dy="870.0"/>
+      </EventConnections>
+      <DataConnections>
+        <Connection Destination="INT2INT_0.IN" Source="CLIENT_1_0.RD_1" dx1="420.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="CLIENT_1_0.SD_1" Source="INT2INT_0.OUT" dx1="0.0" dx2="0.0" dy="265.0"/>
+      </DataConnections>
+    </SubAppNetwork>
+  </Application>
   <Device Name="FORTE_PC" Type="FORTE_PC" x="3045.0" y="1190.0">
     <Attribute Name="Color" Value="138,178,242"/>
     <Attribute Name="Profile" Value="HOLOBLOC"/>
     <Parameter Name="MGR_ID" Value="&quot;localhost:61499&quot;"/>
     <Resource Name="EMB_RES" Type="EMB_RES">
       <FBNetwork>
-        <FB Name="CLIENT_1" Type="CLIENT_1" x="1995.0" y="380.0">
+        <FB Name="INT2INT_0" Type="INT2INT" x="4370.0" y="1520.0"/>
+        <FB Name="CLIENT_1_0" Type="CLIENT_1" x="3280.0" y="1480.0">
           <Parameter Name="QI" Value="TRUE"/>
-          <Parameter Name="ID" Value="141.45.209.119:61500"/>
-          <Parameter Name="SD_1" Value="INT#3"/>
+          <Parameter Name="ID" Value="141:45:209:119:61500"/>
         </FB>
-        <FB Name="E_DELAY" Type="E_DELAY" x="760.0" y="760.0">
+        <FB Name="E_DELAY_0" Type="E_DELAY" x="2090.0" y="1710.0">
           <Parameter Name="DT" Value="T#1s"/>
         </FB>
-        <FB Name="INT2INT" Type="INT2INT" x="2945.0" y="1045.0"/>
         <EventConnections>
-          <Connection Destination="CLIENT_1.INIT" Source="START.WARM" dx1="0.0" dx2="0.0" dy="0.0"/>
-          <Connection Destination="CLIENT_1.INIT" Source="START.COLD" dx1="0.0" dx2="0.0" dy="0.0"/>
-          <Connection Destination="E_DELAY.START" Source="CLIENT_1.INITO" dx1="0.0" dx2="-240.0" dy="1010.0"/>
-          <Connection Destination="CLIENT_1.REQ" Source="E_DELAY.EO" dx1="0.0" dx2="0.0" dy="0.0"/>
-          <Connection Destination="INT2INT.REQ" Source="CLIENT_1.CNF" dx1="410.0" dx2="0.0" dy="0.0"/>
-          <Connection Destination="E_DELAY.START" Source="INT2INT.CNF" dx1="0.0" dx2="-450.0" dy="1050.0"/>
+          <Connection Destination="INT2INT_0.REQ" Source="CLIENT_1_0.CNF" dx1="405.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="E_DELAY_0.START" Source="CLIENT_1_0.INITO" dx1="0.0" dx2="-245.0" dy="685.0"/>
+          <Connection Destination="E_DELAY_0.START" Source="INT2INT_0.CNF" dx1="135.0" dx2="-245.0" dy="870.0"/>
+          <Connection Destination="CLIENT_1_0.REQ" Source="E_DELAY_0.EO" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="CLIENT_1_0.INIT" Source="START.COLD" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="CLIENT_1_0.INIT" Source="START.WARM" dx1="0.0" dx2="0.0" dy="0.0"/>
         </EventConnections>
         <DataConnections>
-          <Connection Destination="INT2INT.IN" Source="CLIENT_1.RD_1" dx1="250.0" dx2="0.0" dy="0.0"/>
-          <Connection Destination="CLIENT_1.SD_1" Source="INT2INT.OUT" dx1="305.0" dx2="0.0" dy="600.0"/>
+          <Connection Destination="CLIENT_1_0.SD_1" Source="INT2INT_0.OUT" dx1="0.0" dx2="0.0" dy="265.0"/>
+          <Connection Destination="INT2INT_0.IN" Source="CLIENT_1_0.RD_1" dx1="420.0" dx2="0.0" dy="0.0"/>
         </DataConnections>
       </FBNetwork>
     </Resource>
   </Device>
+  <Mapping From="ClientTestApp.CLIENT_1_0" To="FORTE_PC.EMB_RES.CLIENT_1_0"/>
+  <Mapping From="ClientTestApp.INT2INT_0" To="FORTE_PC.EMB_RES.INT2INT_0"/>
+  <Mapping From="ClientTestApp.E_DELAY_0" To="FORTE_PC.EMB_RES.E_DELAY_0"/>
   <Segment Name="Ethernet" Type="Ethernet" dx1="1500.0" x="3070.0" y="800.0"/>
   <Link CommResource="FORTE_PC" Comment="" SegmentName="Ethernet"/>
 </System>

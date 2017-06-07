@@ -7,41 +7,157 @@
       <FB Name="F_ADD" Type="F_ADD" x="3040.0" y="1330.0">
         <Parameter Name="IN2" Value="LREAL#3"/>
       </FB>
+      <FB Name="SERVER_1_0" Type="SERVER_1" x="1425.0" y="950.0">
+        <Parameter Name="QI" Value="TRUE"/>
+        <Parameter Name="ID" Value="localhost:61500"/>
+      </FB>
+      <FB Name="LREAL2LREAL_1" Type="LREAL2LREAL" x="2185.0" y="1330.0"/>
+      <FB Name="LREAL2LREAL_2" Type="LREAL2LREAL" x="285.0" y="1900.0"/>
+      <EventConnections>
+        <Connection Destination="LREAL2LREAL_1.REQ" Source="SERVER_1_0.IND" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="F_ADD.REQ" Source="LREAL2LREAL_1.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="LREAL2LREAL_2.REQ" Source="F_ADD.CNF" dx1="185.0" dx2="-160.0" dy="990.0"/>
+        <Connection Destination="SERVER_1_0.RSP" Source="LREAL2LREAL_2.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+      </EventConnections>
+      <DataConnections>
+        <Connection Destination="F_ADD.IN1" Source="LREAL2LREAL_1.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="LREAL2LREAL_1.IN" Source="SERVER_1_0.RD_1" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="LREAL2LREAL_2.IN" Source="F_ADD.OUT" dx1="0.0" dx2="0.0" dy="530.0"/>
+        <Connection Destination="SERVER_1_0.SD_1" Source="LREAL2LREAL_2.OUT" dx1="190.0" dx2="0.0" dy="0.0"/>
+      </DataConnections>
+    </SubAppNetwork>
+  </Application>
+  <Application Name="ServerTestApp2">
+    <SubAppNetwork>
+      <FB Name="F_ADD_0" Type="F_ADD" x="5225.0" y="1235.0">
+        <Parameter Name="IN2" Value="LREAL#3"/>
+      </FB>
+      <FB Name="F_CONCAT" Type="F_CONCAT" x="5225.0" y="1900.0">
+        <Parameter Name="IN2" Value="STRING# world!"/>
+      </FB>
+      <FB Name="SERVER_2" Type="SERVER_2" x="2850.0" y="1045.0">
+        <Parameter Name="QI" Value="TRUE"/>
+        <Parameter Name="ID" Value="localhost:61500"/>
+      </FB>
+      <FB Name="STRING2STRING" Type="STRING2STRING" x="4085.0" y="1900.0"/>
+      <FB Name="LREAL2LREAL" Type="LREAL2LREAL" x="4085.0" y="1235.0"/>
+      <FB Name="E_SPLIT" Type="E_SPLIT" x="3515.0" y="1710.0"/>
+      <FB Name="E_REND" Type="E_REND" x="1710.0" y="1045.0"/>
+      <FB Name="STRING2STRING_0" Type="STRING2STRING" x="475.0" y="1900.0"/>
+      <FB Name="LREAL2LREAL_0" Type="LREAL2LREAL" x="475.0" y="950.0"/>
+      <EventConnections>
+        <Connection Destination="E_SPLIT.EI" Source="SERVER_2.IND" dx1="135.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="LREAL2LREAL.REQ" Source="E_SPLIT.EO1" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="STRING2STRING.REQ" Source="E_SPLIT.EO2" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="F_ADD_0.REQ" Source="LREAL2LREAL.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="F_CONCAT.REQ" Source="STRING2STRING.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="LREAL2LREAL_0.REQ" Source="F_ADD_0.CNF" dx1="0.0" dx2="0.0" dy="-335.0"/>
+        <Connection Destination="STRING2STRING_0.REQ" Source="F_CONCAT.CNF" dx1="200.0" dx2="-180.0" dy="820.0"/>
+        <Connection Destination="E_REND.EI1" Source="LREAL2LREAL_0.CNF" dx1="360.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="E_REND.EI2" Source="STRING2STRING_0.CNF" dx1="285.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="SERVER_2.RSP" Source="E_REND.EO" dx1="230.0" dx2="0.0" dy="0.0"/>
+      </EventConnections>
+      <DataConnections>
+        <Connection Destination="STRING2STRING.IN" Source="SERVER_2.RD_2" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="F_CONCAT.IN1" Source="STRING2STRING.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="LREAL2LREAL.IN" Source="SERVER_2.RD_1" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="F_ADD_0.IN1" Source="LREAL2LREAL.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="LREAL2LREAL_0.IN" Source="F_ADD_0.OUT" dx1="255.0" dx2="-180.0" dy="-795.0"/>
+        <Connection Destination="STRING2STRING_0.IN" Source="F_CONCAT.OUT" dx1="0.0" dx2="0.0" dy="415.0"/>
+        <Connection Destination="SERVER_2.SD_1" Source="LREAL2LREAL_0.OUT" dx1="170.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="SERVER_2.SD_2" Source="STRING2STRING_0.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
+      </DataConnections>
     </SubAppNetwork>
   </Application>
   <Device Name="FORTE_PC" Type="FORTE_PC" x="3155.0" y="1580.0">
     <Attribute Name="Color" Value="102,113,195"/>
     <Attribute Name="Profile" Value="HOLOBLOC"/>
     <Parameter Name="MGR_ID" Value="&quot;localhost:61499&quot;"/>
-    <Resource Name="EMB_RES" Type="EMB_RES">
+    <Resource Name="ServerTestApp_RES" Type="EMB_RES">
       <FBNetwork>
         <FB Name="F_ADD" Type="F_ADD" x="3705.0" y="1330.0">
           <Parameter Name="IN2" Value="LREAL#3"/>
         </FB>
-        <FB Name="SERVER_1" Type="SERVER_1" x="1425.0" y="665.0">
+        <FB Name="SERVER_1_0" Type="SERVER_1" x="1425.0" y="950.0">
           <Parameter Name="QI" Value="TRUE"/>
           <Parameter Name="ID" Value="localhost:61500"/>
         </FB>
-        <FB Name="LREAL2LREAL" Type="LREAL2LREAL" x="2565.0" y="1045.0"/>
-        <FB Name="LREAL2LREAL_0" Type="LREAL2LREAL" x="380.0" y="1425.0"/>
+        <FB Name="LREAL2LREAL_2" Type="LREAL2LREAL" x="285.0" y="1900.0"/>
+        <FB Name="LREAL2LREAL_1" Type="LREAL2LREAL" x="2185.0" y="1330.0"/>
         <EventConnections>
-          <Connection Destination="SERVER_1.INIT" Source="START.COLD" dx1="0.0" dx2="0.0" dy="0.0"/>
-          <Connection Destination="SERVER_1.INIT" Source="START.WARM" dx1="0.0" dx2="0.0" dy="0.0"/>
-          <Connection Destination="LREAL2LREAL.REQ" Source="SERVER_1.IND" dx1="300.0" dx2="0.0" dy="0.0"/>
-          <Connection Destination="F_ADD.REQ" Source="LREAL2LREAL.CNF" dx1="290.0" dx2="0.0" dy="0.0"/>
-          <Connection Destination="LREAL2LREAL_0.REQ" Source="F_ADD.CNF" dx1="0.0" dx2="0.0" dy="615.0"/>
-          <Connection Destination="SERVER_1.RSP" Source="LREAL2LREAL_0.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="LREAL2LREAL_2.REQ" Source="F_ADD.CNF" dx1="185.0" dx2="-160.0" dy="990.0"/>
+          <Connection Destination="SERVER_1_0.RSP" Source="LREAL2LREAL_2.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="LREAL2LREAL_1.REQ" Source="SERVER_1_0.IND" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="F_ADD.REQ" Source="LREAL2LREAL_1.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="SERVER_1_0.INIT" Source="START.COLD" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="SERVER_1_0.INIT" Source="START.WARM" dx1="0.0" dx2="0.0" dy="0.0"/>
         </EventConnections>
         <DataConnections>
-          <Connection Destination="LREAL2LREAL.IN" Source="SERVER_1.RD_1" dx1="0.0" dx2="0.0" dy="0.0"/>
-          <Connection Destination="F_ADD.IN1" Source="LREAL2LREAL.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
-          <Connection Destination="LREAL2LREAL_0.IN" Source="F_ADD.OUT" dx1="220.0" dx2="-165.0" dy="240.0"/>
-          <Connection Destination="SERVER_1.SD_1" Source="LREAL2LREAL_0.OUT" dx1="280.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="LREAL2LREAL_2.IN" Source="F_ADD.OUT" dx1="0.0" dx2="0.0" dy="530.0"/>
+          <Connection Destination="SERVER_1_0.SD_1" Source="LREAL2LREAL_2.OUT" dx1="190.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="LREAL2LREAL_1.IN" Source="SERVER_1_0.RD_1" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="F_ADD.IN1" Source="LREAL2LREAL_1.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
+        </DataConnections>
+      </FBNetwork>
+    </Resource>
+    <Resource Name="ServerTestApp2_RES" Type="EMB_RES">
+      <FBNetwork>
+        <FB Name="SERVER_2" Type="SERVER_2" x="2850.0" y="1045.0">
+          <Parameter Name="QI" Value="TRUE"/>
+          <Parameter Name="ID" Value="localhost:61500"/>
+        </FB>
+        <FB Name="F_ADD_0" Type="F_ADD" x="5225.0" y="1235.0">
+          <Parameter Name="IN2" Value="LREAL#3"/>
+        </FB>
+        <FB Name="LREAL2LREAL_0" Type="LREAL2LREAL" x="475.0" y="950.0"/>
+        <FB Name="LREAL2LREAL" Type="LREAL2LREAL" x="4085.0" y="1235.0"/>
+        <FB Name="STRING2STRING" Type="STRING2STRING" x="4085.0" y="1900.0"/>
+        <FB Name="STRING2STRING_0" Type="STRING2STRING" x="475.0" y="1900.0"/>
+        <FB Name="E_REND" Type="E_REND" x="1710.0" y="1045.0"/>
+        <FB Name="F_CONCAT" Type="F_CONCAT" x="5225.0" y="1900.0">
+          <Parameter Name="IN2" Value="STRING# world!"/>
+        </FB>
+        <FB Name="E_SPLIT" Type="E_SPLIT" x="3515.0" y="1710.0"/>
+        <EventConnections>
+          <Connection Destination="LREAL2LREAL_0.REQ" Source="F_ADD_0.CNF" dx1="0.0" dx2="0.0" dy="-335.0"/>
+          <Connection Destination="F_ADD_0.REQ" Source="LREAL2LREAL.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="E_REND.EI1" Source="LREAL2LREAL_0.CNF" dx1="360.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="E_REND.EI2" Source="STRING2STRING_0.CNF" dx1="285.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="F_CONCAT.REQ" Source="STRING2STRING.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="STRING2STRING_0.REQ" Source="F_CONCAT.CNF" dx1="200.0" dx2="-180.0" dy="820.0"/>
+          <Connection Destination="E_SPLIT.EI" Source="SERVER_2.IND" dx1="135.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="LREAL2LREAL.REQ" Source="E_SPLIT.EO1" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="STRING2STRING.REQ" Source="E_SPLIT.EO2" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="SERVER_2.RSP" Source="E_REND.EO" dx1="230.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="SERVER_2.INIT" Source="START.COLD" dx1="2315.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="SERVER_2.INIT" Source="START.WARM" dx1="2310.0" dx2="0.0" dy="0.0"/>
+        </EventConnections>
+        <DataConnections>
+          <Connection Destination="LREAL2LREAL_0.IN" Source="F_ADD_0.OUT" dx1="255.0" dx2="-180.0" dy="-795.0"/>
+          <Connection Destination="SERVER_2.SD_1" Source="LREAL2LREAL_0.OUT" dx1="170.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="LREAL2LREAL.IN" Source="SERVER_2.RD_1" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="F_ADD_0.IN1" Source="LREAL2LREAL.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="STRING2STRING.IN" Source="SERVER_2.RD_2" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="SERVER_2.SD_2" Source="STRING2STRING_0.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="F_CONCAT.IN1" Source="STRING2STRING.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="STRING2STRING_0.IN" Source="F_CONCAT.OUT" dx1="0.0" dx2="0.0" dy="415.0"/>
         </DataConnections>
       </FBNetwork>
     </Resource>
   </Device>
-  <Mapping From="ServerTestApp.F_ADD" To="FORTE_PC.EMB_RES.F_ADD"/>
+  <Mapping From="ServerTestApp.F_ADD" To="FORTE_PC.ServerTestApp_RES.F_ADD"/>
+  <Mapping From="ServerTestApp.SERVER_1_0" To="FORTE_PC.ServerTestApp_RES.SERVER_1_0"/>
+  <Mapping From="ServerTestApp.LREAL2LREAL_1" To="FORTE_PC.ServerTestApp_RES.LREAL2LREAL_1"/>
+  <Mapping From="ServerTestApp.LREAL2LREAL_2" To="FORTE_PC.ServerTestApp_RES.LREAL2LREAL_2"/>
+  <Mapping From="ServerTestApp2.F_ADD_0" To="FORTE_PC.ServerTestApp2_RES.F_ADD_0"/>
+  <Mapping From="ServerTestApp2.F_CONCAT" To="FORTE_PC.ServerTestApp2_RES.F_CONCAT"/>
+  <Mapping From="ServerTestApp2.SERVER_2" To="FORTE_PC.ServerTestApp2_RES.SERVER_2"/>
+  <Mapping From="ServerTestApp2.STRING2STRING" To="FORTE_PC.ServerTestApp2_RES.STRING2STRING"/>
+  <Mapping From="ServerTestApp2.LREAL2LREAL" To="FORTE_PC.ServerTestApp2_RES.LREAL2LREAL"/>
+  <Mapping From="ServerTestApp2.E_SPLIT" To="FORTE_PC.ServerTestApp2_RES.E_SPLIT"/>
+  <Mapping From="ServerTestApp2.E_REND" To="FORTE_PC.ServerTestApp2_RES.E_REND"/>
+  <Mapping From="ServerTestApp2.STRING2STRING_0" To="FORTE_PC.ServerTestApp2_RES.STRING2STRING_0"/>
+  <Mapping From="ServerTestApp2.LREAL2LREAL_0" To="FORTE_PC.ServerTestApp2_RES.LREAL2LREAL_0"/>
   <Segment Name="Ethernet" Type="Ethernet" dx1="1500.0" x="3040.0" y="1155.0"/>
   <Link CommResource="FORTE_PC" Comment="" SegmentName="Ethernet"/>
 </System>

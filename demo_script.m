@@ -3,16 +3,16 @@
 % What this demo does: Sends a variable to a FORTE application which
 % adds 3 to the data and sends the result back to Matlab
 
-% --> First, import the file ServerTest.sys into 4diac-IDE and compile the
-% application ServerTestApp onto FORTE, then run the following:
+% --> First, import the file ServerTest.sys into 4diac-IDE
+% Compile the application ServerTestApp onto FORTE, then run the following:
 var = 5;
 t = tcpip4diac('client'); % host = 'localhost'; address = 61500;
 init(t, 1) % connect to server
-out = req(t, var); % returns var + 3
+out = req(t, var); % returns var + 3;
 disp(out)
 init(t, 0) % disconnect
 
-%% 2. Server in Matlab - client in FORTE
+%% Demo 2: Server in Matlab - client in FORTE
 %
 % What this demo does: A FORTE application sends an integer (3) to the
 % tcpip4diac server object in Matlab. Upon receival of the data, Matlab
@@ -40,3 +40,21 @@ while connected % This will run in an endless loop until connection is lost or u
         disp('Connnection with FORTE lost')
     end
 end
+
+%% Demo 3: Client in Matlab - server in FORTE (with multiple inputs/outputs)
+%
+% What this demo does: Sends a value and a char to a FORTE application which
+% adds 3 to the data, concatinates 'there' to the char and sends the results back to Matlab
+
+% --> First, import the file ServerTest.sys into 4diac-IDE
+% Compile the application ServerTestApp2 onto FORTE, then run the following:
+var = 5;
+str = 'Hello';
+t = tcpip4diac('client', 'localhost', 61500, ...
+    'DataInputs', {'LREAL'; 'STRING'}, 'DataOutputs', {'LREAL'; 'STRING'});
+init(t, 1)
+inputData = {var; str}; % combine cell array to inputs
+[out1, out2] = req(t, inputData); % returns var + 3; [var, ' world!'];
+disp(out1)
+disp(out2)
+init(t, 0) % disconnect

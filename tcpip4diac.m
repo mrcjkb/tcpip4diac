@@ -455,16 +455,17 @@ classdef tcpip4diac < tcpip
                     % Convert to UNIX
                     sd = tcpip4diac.datevec2unixvec(data);
                 else % regular double
-                    sd = [typeID, fliplr(typecast(data, 'uint8'))]';
+                    sd = fliplr(typecast(data, 'uint8'))';
                 end
             elseif strcmp(castID, 'char') % STRING
-                sd = [typeID; 0; 4; uint8(data)'];
+                sd = [0; uint8(numel(data)); uint8(data)'];
             elseif strcmp(castID, 'string') % WSTRING
                 val = char(data);
                 tmp = zeros(2*numel(val) + 1, 1, 'uint8');
                 tmp(2:2:end-1) = uint8(val);
-                sd = [typeID; 0; 6; 0; 39; tmp; 39];
+                sd = [0; 6; 0; 39; tmp; 39];
             end
+            sd = [typeID; sd];
         end
         function rd = iec61499ToMatlab(obj, sd)
                 if numel(sd) == 1 % BOOL
