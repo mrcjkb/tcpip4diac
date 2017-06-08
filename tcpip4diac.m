@@ -383,7 +383,7 @@ classdef tcpip4diac < tcpip
             %
             %  	>> [out1, out2, out3, ..., outN] = waitForData(t);
             %  	>> [out1, out2, out3, ..., outN] = waitForData(t, timeoutS);
-            obj.numDataOutputs(nargout)
+            obj.ChkNumDataOutputs(nargout)
             if nargin < 2
                 timeoutS = inf;
             end
