@@ -69,11 +69,30 @@
       </DataConnections>
     </SubAppNetwork>
   </Application>
+  <Application Name="ServerTestApp3">
+    <SubAppNetwork>
+      <FB Name="SERVER_1" Type="SERVER_1" x="3135.0" y="1425.0">
+        <Parameter Name="QI" Value="TRUE"/>
+        <Parameter Name="ID" Value="localhost:61500"/>
+      </FB>
+      <FB Name="F_ADD_DT_TIME" Type="F_ADD_DT_TIME" x="4820.0" y="1695.0">
+        <Parameter Name="IN2" Value="T#86400000ms"/>
+      </FB>
+      <EventConnections>
+        <Connection Destination="F_ADD_DT_TIME.REQ" Source="SERVER_1.IND" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="SERVER_1.RSP" Source="F_ADD_DT_TIME.CNF" dx1="0.0" dx2="0.0" dy="-530.0"/>
+      </EventConnections>
+      <DataConnections>
+        <Connection Destination="F_ADD_DT_TIME.IN1" Source="SERVER_1.RD_1" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="SERVER_1.SD_1" Source="F_ADD_DT_TIME.OUT" dx1="785.0" dx2="-740.0" dy="890.0"/>
+      </DataConnections>
+    </SubAppNetwork>
+  </Application>
   <Device Name="FORTE_PC" Type="FORTE_PC" x="3155.0" y="1580.0">
     <Attribute Name="Color" Value="102,113,195"/>
     <Attribute Name="Profile" Value="HOLOBLOC"/>
     <Parameter Name="MGR_ID" Value="&quot;localhost:61499&quot;"/>
-    <Resource Name="ServerTestApp_RES" Type="EMB_RES">
+    <Resource Name="ServerTestApp" Type="EMB_RES">
       <FBNetwork>
         <FB Name="F_ADD" Type="F_ADD" x="3705.0" y="1330.0">
           <Parameter Name="IN2" Value="LREAL#3"/>
@@ -100,7 +119,7 @@
         </DataConnections>
       </FBNetwork>
     </Resource>
-    <Resource Name="ServerTestApp2_RES" Type="EMB_RES">
+    <Resource Name="ServerTestApp2" Type="EMB_RES">
       <FBNetwork>
         <FB Name="SERVER_2" Type="SERVER_2" x="2850.0" y="1045.0">
           <Parameter Name="QI" Value="TRUE"/>
@@ -144,20 +163,43 @@
         </DataConnections>
       </FBNetwork>
     </Resource>
+    <Resource Name="ServerTestApp3" Type="EMB_RES">
+      <FBNetwork>
+        <FB Name="SERVER_1" Type="SERVER_1" x="3135.0" y="1425.0">
+          <Parameter Name="QI" Value="TRUE"/>
+          <Parameter Name="ID" Value="localhost:61500"/>
+        </FB>
+        <FB Name="F_ADD_DT_TIME" Type="F_ADD_DT_TIME" x="5225.0" y="1710.0">
+          <Parameter Name="IN2" Value="T#86400000ms"/>
+        </FB>
+        <EventConnections>
+          <Connection Destination="F_ADD_DT_TIME.REQ" Source="SERVER_1.IND" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="SERVER_1.RSP" Source="F_ADD_DT_TIME.CNF" dx1="0.0" dx2="0.0" dy="-530.0"/>
+          <Connection Destination="SERVER_1.INIT" Source="START.COLD" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="SERVER_1.INIT" Source="START.WARM" dx1="0.0" dx2="0.0" dy="0.0"/>
+        </EventConnections>
+        <DataConnections>
+          <Connection Destination="F_ADD_DT_TIME.IN1" Source="SERVER_1.RD_1" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="SERVER_1.SD_1" Source="F_ADD_DT_TIME.OUT" dx1="785.0" dx2="-740.0" dy="890.0"/>
+        </DataConnections>
+      </FBNetwork>
+    </Resource>
   </Device>
-  <Mapping From="ServerTestApp.F_ADD" To="FORTE_PC.ServerTestApp_RES.F_ADD"/>
-  <Mapping From="ServerTestApp.SERVER_1_0" To="FORTE_PC.ServerTestApp_RES.SERVER_1_0"/>
-  <Mapping From="ServerTestApp.LREAL2LREAL_1" To="FORTE_PC.ServerTestApp_RES.LREAL2LREAL_1"/>
-  <Mapping From="ServerTestApp.LREAL2LREAL_2" To="FORTE_PC.ServerTestApp_RES.LREAL2LREAL_2"/>
-  <Mapping From="ServerTestApp2.F_ADD_0" To="FORTE_PC.ServerTestApp2_RES.F_ADD_0"/>
-  <Mapping From="ServerTestApp2.F_CONCAT" To="FORTE_PC.ServerTestApp2_RES.F_CONCAT"/>
-  <Mapping From="ServerTestApp2.SERVER_2" To="FORTE_PC.ServerTestApp2_RES.SERVER_2"/>
-  <Mapping From="ServerTestApp2.STRING2STRING" To="FORTE_PC.ServerTestApp2_RES.STRING2STRING"/>
-  <Mapping From="ServerTestApp2.LREAL2LREAL" To="FORTE_PC.ServerTestApp2_RES.LREAL2LREAL"/>
-  <Mapping From="ServerTestApp2.E_SPLIT" To="FORTE_PC.ServerTestApp2_RES.E_SPLIT"/>
-  <Mapping From="ServerTestApp2.E_REND" To="FORTE_PC.ServerTestApp2_RES.E_REND"/>
-  <Mapping From="ServerTestApp2.STRING2STRING_0" To="FORTE_PC.ServerTestApp2_RES.STRING2STRING_0"/>
-  <Mapping From="ServerTestApp2.LREAL2LREAL_0" To="FORTE_PC.ServerTestApp2_RES.LREAL2LREAL_0"/>
+  <Mapping From="ServerTestApp.F_ADD" To="FORTE_PC.ServerTestApp.F_ADD"/>
+  <Mapping From="ServerTestApp.SERVER_1_0" To="FORTE_PC.ServerTestApp.SERVER_1_0"/>
+  <Mapping From="ServerTestApp.LREAL2LREAL_1" To="FORTE_PC.ServerTestApp.LREAL2LREAL_1"/>
+  <Mapping From="ServerTestApp.LREAL2LREAL_2" To="FORTE_PC.ServerTestApp.LREAL2LREAL_2"/>
+  <Mapping From="ServerTestApp2.F_ADD_0" To="FORTE_PC.ServerTestApp2.F_ADD_0"/>
+  <Mapping From="ServerTestApp2.F_CONCAT" To="FORTE_PC.ServerTestApp2.F_CONCAT"/>
+  <Mapping From="ServerTestApp2.SERVER_2" To="FORTE_PC.ServerTestApp2.SERVER_2"/>
+  <Mapping From="ServerTestApp2.STRING2STRING" To="FORTE_PC.ServerTestApp2.STRING2STRING"/>
+  <Mapping From="ServerTestApp2.LREAL2LREAL" To="FORTE_PC.ServerTestApp2.LREAL2LREAL"/>
+  <Mapping From="ServerTestApp2.E_SPLIT" To="FORTE_PC.ServerTestApp2.E_SPLIT"/>
+  <Mapping From="ServerTestApp2.E_REND" To="FORTE_PC.ServerTestApp2.E_REND"/>
+  <Mapping From="ServerTestApp2.STRING2STRING_0" To="FORTE_PC.ServerTestApp2.STRING2STRING_0"/>
+  <Mapping From="ServerTestApp2.LREAL2LREAL_0" To="FORTE_PC.ServerTestApp2.LREAL2LREAL_0"/>
+  <Mapping From="ServerTestApp3.SERVER_1" To="FORTE_PC.ServerTestApp3.SERVER_1"/>
+  <Mapping From="ServerTestApp3.F_ADD_DT_TIME" To="FORTE_PC.ServerTestApp3.F_ADD_DT_TIME"/>
   <Segment Name="Ethernet" Type="Ethernet" dx1="1500.0" x="3040.0" y="1155.0"/>
   <Link CommResource="FORTE_PC" Comment="" SegmentName="Ethernet"/>
 </System>
