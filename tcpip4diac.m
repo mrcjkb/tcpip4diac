@@ -46,6 +46,14 @@ classdef tcpip4diac < tcpip
     % 	>> [qo, status] = init(t, qi); % outputs a status message
     % 	>> [qo, status, t] = init(t, qi, remotehost, port); % Enables to change the remote host and port
     %
+    % A connection will be established when the CLIENT function block on
+    % FORTE is initialized. With a tcpip4diac object in the 'server' role
+    % and the IP set to '0.0.0.0', the FORTE CLIENT function block's ID
+    % must be configured to the PC's local IP address and the tcpip4diac
+    % server's port.
+    % The PC's local IP address can be queried using
+    %   
+    %   >> ip = tcpip4diac.getLocalHostIP; % (requires JAVA)
     %
     % Alternatively, the functions fopen() and fclose() can be called on the TCP/IP object t for initialization and deinitialization, respectively.
     %
@@ -505,6 +513,19 @@ classdef tcpip4diac < tcpip
                 castID = obj.supportedMatlabTypes{idx+1};
             else
                 error('Received unsupported data type.')
+            end
+        end
+    end
+    
+    methods (Static)
+        function ip = getLocalHostIP
+            % GETLOCALHOSTIP: Returns the machine's localhost IP address.
+            % This functions requires JAVA
+            if usejava('jvm')
+                ip = char(java.net.InetAddress.getLocalHost.getHostAddress);
+            else
+                ip = '';
+                warning('No JVM found. Unable query PC''s local IP address.')
             end
         end
     end

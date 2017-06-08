@@ -50,6 +50,11 @@ Server with no inputs and 1 output
  	>> [qo, status] = init(t, qi);  % outputs a status message
  	>> [qo, status, t] = init(t, qi, remotehost, port);  % Enables to change the remote host and port
 
+A connection will be established when the CLIENT function block on FORTE is initialized. With a tcpip4diac object in the 'server' role
+and the IP set to '0.0.0.0', the FORTE CLIENT function block's ID must be configured to the PC's local IP address and the tcpip4diac
+server's port. The PC's local IP address can be queried using
+      
+    >> ip = tcpip4diac.getLocalHostIP; % (requires JAVA)
 
  Alternatively, the functions fopen() and fclose() can be called on the TCP/IP object t for initialization and deinitialization, respectively.
 
