@@ -555,7 +555,7 @@ classdef tcpip4diac < tcpip
             end
         end
         function uv = datevec2unixvec(dv)
-            ud = double(int32(floor(86400 * (datenum(dv) - datenum('01-Jan-1970 01:00:00'))))) * 1000; % FORTE unix date
+            ud = (double(int64(86400000 * (datenum(dv) - datenum('01-Jan-1970 01:00:00'))))); % FORTE unix date
             uv = zeros(8, 1);
             for i = 1:8
                 uv(i) = floor(ud / (256.^tcpip4diac.tv(i)));
@@ -565,8 +565,8 @@ classdef tcpip4diac < tcpip
         end
         function dv = unixvec2datevec(uv)
             % Unix time
-            ud = sum(uv(2:end) .* (256.^tcpip4diac.tv)) / 1000; % FORTE unix data
-            dv = datevec(ud / 86400 + datenum('01-Jan-1970 01:00:00'));
+            ud = sum(uv(2:end) .* (256.^tcpip4diac.tv)); % FORTE unix data
+            dv = datevec(ud / 86400000 + datenum('01-Jan-1970 01:00:00'));
         end
         function tf = validateDataInputs(x)
             if ~iscell(x)
