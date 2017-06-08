@@ -152,7 +152,7 @@ classdef tcpip4diac < tcpip
     properties (Constant)
         % Matlab equivalents to supported IEC 61499 data types
         supportedMatlabTypes = {'logical'; 'int8'; 'int16'; 'int32'; 'int64'; ...
-            'uint8'; 'uint16'; 'uint32'; 'uint64'; 'single'; 'double'; 'char'; 'string'; 'datetime'};
+            'uint8'; 'uint16'; 'uint32'; 'uint64'; 'single'; 'double'; 'char'; 'string'; 'datevec'};
         % Supported IEC 61499 data types
         supportedIEC61499Types = {'BOOL'; 'SINT'; 'INT'; 'DINT'; 'LINT'; ...
             'USINT'; 'UINT'; 'UDINT'; 'ULINT'; 'REAL'; 'LREAL'; 'STRING'; 'WSTRING'; 'DATE_AND_TIME'};
@@ -161,7 +161,9 @@ classdef tcpip4diac < tcpip
         % Byte numbers of the respective data types (including typeIDs).
         % STRING and WSTRING are currently not supported for multiple
         % inputs due to the fact that they have variable length bytes.
-        dataTypeByteNums = [1; 2; 3; 5; 9; 2; 3; 5; 9; 5; 9; nan; nan];
+        dataTypeByteNums = [1; 2; 3; 5; 9; 2; 3; 5; 9; 5; 9; nan; nan; 9];
+        % Factors for unix time vector conversion                                <                                                                                    -
+        tv = [7; 6; 5; 4; 3; 2; 1; 0];   
     end
     methods
         function obj = tcpip4diac(networkRole, remotehost, port, varargin)
@@ -383,7 +385,7 @@ classdef tcpip4diac < tcpip
             %
             %  	>> [out1, out2, out3, ..., outN] = waitForData(t);
             %  	>> [out1, out2, out3, ..., outN] = waitForData(t, timeoutS);
-            obj.ChkNumDataOutputs(nargout)
+            obj.chkNumDataOutputs(nargout)
             if nargin < 2
                 timeoutS = inf;
             end
@@ -497,6 +499,9 @@ classdef tcpip4diac < tcpip
             castID = class(data);
             idx = find(ismember(obj.supportedMatlabTypes, castID), 1);
             if ~isempty(idx)
+                if size(data, 2) == 6 % datevec
+                    idx = 14;
+                end
                 typeID = obj.supportedTypeIDs(idx-1);
             else
                 error(['The data type "', castID, '" is currently unsupported.'])
@@ -506,6 +511,9 @@ classdef tcpip4diac < tcpip
             idx = find(obj.supportedTypeIDs == typeID, 1);
             if ~isempty(idx)
                 castID = obj.supportedMatlabTypes{idx+1};
+                if strcmp(castID, 'datevec')
+                    castID = 'double';
+                end
             else
                 error('Received unsupported data type.')
             end
@@ -547,21 +555,18 @@ classdef tcpip4diac < tcpip
             end
         end
         function uv = datevec2unixvec(dv)
-            ud = double(int32(floor(86400 * (datenum(dv) - datenum('01-Jan-1970'))))); % unix date
-            ud = (ud - 2*3600) * 1000; % Milliseconds + correct 1 hour offset of FORTE from unix time
-            uv = zeros(9, 1);
-            uv(1) = 79;
-            for i = 2:9
-                uv(i) = floor(ud / (256.^tcpip4diac.tv(i-1)));
-                ud = ud - uv(i) * (256.^tcpip4diac.tv(i-1));
+            ud = double(int32(floor(86400 * (datenum(dv) - datenum('01-Jan-1970 01:00:00'))))) * 1000; % FORTE unix date
+            uv = zeros(8, 1);
+            for i = 1:8
+                uv(i) = floor(ud / (256.^tcpip4diac.tv(i)));
+                ud = ud - uv(i) * (256.^tcpip4diac.tv(i));
             end
             uv = uint8(uv);
-            uv(end) = uv(end) + 1; % Correct last millisecond
         end
         function dv = unixvec2datevec(uv)
             % Unix time
-            ud = sum(uv(2:end) .* (256.^tcpip4diac.tv)) / 1000 + 2*3600; % Correct offset of 2 hours & convert to milliseconds
-            dv = datevec(ud / 86400 + datenum('01-Jan-1970'));
+            ud = sum(uv(2:end) .* (256.^tcpip4diac.tv)) / 1000; % FORTE unix data
+            dv = datevec(ud / 86400 + datenum('01-Jan-1970 01:00:00'));
         end
         function tf = validateDataInputs(x)
             if ~iscell(x)

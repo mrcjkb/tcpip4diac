@@ -58,3 +58,17 @@ inputData = {var; str}; % combine cell array to inputs
 disp(out1)
 disp(out2)
 init(t, 0) % disconnect
+
+%% Demo 4: Client in Matlab - server in FORTE (handling time stamps)
+%
+% What this demo does: Determines the current system time and sends it to
+% FORTE. FORTE adds a day and sends the result back to Matlab.
+
+% --> First, import the file ServerTest.sys into 4diac-IDE
+% Compile the application ServerTestApp3 onto FORTE, then run the following:
+today = datevec(now);
+t = tcpip4diac('client');
+init(t, 1)
+tomorrow = req(t, today);
+disp(datetime(tomorrow))
+init(t, 0) % disconnect
