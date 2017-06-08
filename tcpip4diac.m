@@ -342,13 +342,11 @@ classdef tcpip4diac < tcpip
             %   >> in1 = datevec(now);
             %   >> [out1, out2, out3, ..., outM] = req(t, in1);
             %
-            if nargout ~= obj.numDataOutputs
-                error('Wrong amount of output arguments.')
-            elseif numel(data) ~= obj.numDataInputs
-                error('Wrong amount of input arguments.')
-            elseif ~obj.roleFlag % Server object?
+            if ~obj.roleFlag % Server object?
                 error('Method "req" only valid for client objects.')
             end
+            obj.chkNumDataInputs(size(data,1))
+            obj.chkNumDataOutputs(nargout)
             if nargin > 1
                 sd = obj.matlabToByteData(data);
                 fwrite(obj, sd)
@@ -368,9 +366,8 @@ classdef tcpip4diac < tcpip
             % For multiple data inputs:
             % 	>> inData = {in1, ... inN}; % cell array of inputs
             % 	>> rsp(t, inData)
-            if numel(data) ~= obj.numDataInputs
-                error('Wrong amount of input arguments.')
-            elseif obj.roleFlag % Client object?
+            obj.chkNumDataInputs(size(data, 1))
+            if obj.roleFlag % Client object?
                 error('Method "rsp" only valid for server objects.')
             end
             sd = obj.matlabToByteData(data);
@@ -386,9 +383,7 @@ classdef tcpip4diac < tcpip
             %
             %  	>> [out1, out2, out3, ..., outN] = waitForData(t);
             %  	>> [out1, out2, out3, ..., outN] = waitForData(t, timeoutS);
-            if nargout ~= obj.numDataOutputs
-                error('Wrong amount of output arguments.')
-            end
+            obj.numDataOutputs(nargout)
             if nargin < 2
                 timeoutS = inf;
             end
@@ -513,6 +508,16 @@ classdef tcpip4diac < tcpip
                 castID = obj.supportedMatlabTypes{idx+1};
             else
                 error('Received unsupported data type.')
+            end
+        end
+        function chkNumDataInputs(obj, n)
+            if n ~= obj.numDataInputs
+                error('Wrong amount of input arguments.')
+            end
+        end
+        function chkNumDataOutputs(obj, n)
+            if n ~= obj.numDataOutputs
+                error('Wrong amount of output arguments.')
             end
         end
     end
