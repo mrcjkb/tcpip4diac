@@ -372,8 +372,12 @@ classdef tcpip4diac < tcpip
             if obj.roleFlag % Client object?
                 error('Method "rsp" only valid for server objects.')
             end
-            sd = obj.matlabToByteData(data);
-            fwrite(obj, sd)
+            if nargin > 1
+                sd = obj.matlabToByteData(data);
+                fwrite(obj, sd)
+            else
+                fwrite(obj, 5) % No data inputs
+            end
         end
         function varargout = waitForData(obj, timeoutS)
             % WAITFORDATA: Awaits request from a CLIENT function block.
