@@ -115,9 +115,10 @@ classdef tcpip4diac < tcpip
     % 		ULINT			|			uint64				|			  -
     % 		REAL			|			single				|			  -
     % 		LREAL			|			double				|			  -
-    % 		STRING			|			char				|             -
+    % 		STRING			|			char				|   Arrays not yet supported.
     % 		WSTRING			|			string				|	NOT RECOMMENDED. Use STRING 
     %                       |                               |   instead.
+    %                       |                               |   Arrays not yet supported.
     % 						|								|	Requires Matlab R2016b or
     % 						|								|	above (cast to string).
     %       DATE_AND_TIME   |           1x6 double          |   According to Matlab's datevec
@@ -128,6 +129,9 @@ classdef tcpip4diac < tcpip
     % SEE ALSO: tcpip
     %
     % Author: Marc Jakobi, May 2017, HTW-Berlin
+    
+    %MTODO: Update doc & readme. Note that arrays have only been
+    %extensively tested for LREAL data type
     
     properties (Hidden, Access = 'protected')
         % True for client, false for server
@@ -144,6 +148,10 @@ classdef tcpip4diac < tcpip
         iByteArraySizes;
         % Size of the output byte arrays
         oByteArraySizes;
+        % Sizes of the input arrays (if arrays specified)
+        inputArraySizes = ones(14, 1);
+        % Sizes of the output arrays (if arrays specified)
+        outputArraySizes = ones(14, 1);
         % Total size of the input byte array that is sent over the network
         totalIByteArraySize;
         % Identifiers for data types to cast to
@@ -154,8 +162,9 @@ classdef tcpip4diac < tcpip
         supportedMatlabTypes = {'logical'; 'int8'; 'int16'; 'int32'; 'int64'; ...
             'uint8'; 'uint16'; 'uint32'; 'uint64'; 'single'; 'double'; 'char'; 'string'; 'datevec'};
         % Supported IEC 61499 data types
-        supportedIEC61499Types = {'BOOL'; 'SINT'; 'INT'; 'DINT'; 'LINT'; ...
-            'USINT'; 'UINT'; 'UDINT'; 'ULINT'; 'REAL'; 'LREAL'; 'STRING'; 'WSTRING'; 'DATE_AND_TIME'};
+        supportedIEC61499Types = {'BOOL\d*'; 'SINT\d*'; 'INT\d*'; 'DINT\d*'; 'LINT\d*'; ...
+            'USINT\d*'; 'UINT\d*'; 'UDINT\d*'; 'ULINT\d*'; 'REAL\d*'; 'LREAL\d*'; ...
+            'STRING'; 'WSTRING'; 'DATE_AND_TIME\d*'};
         % Representative IDs of supported IEC 61499 data types
         supportedTypeIDs = [66; 67; 68; 69; 70; 71; 72; 73; 74; 75; 80; 85; 79];
         % Byte numbers of the respective data types (including typeIDs).
@@ -247,14 +256,29 @@ classdef tcpip4diac < tcpip
                 obj.iByteArraySizes = zeros(obj.numDataInputs, 1);
                 obj.castIDs = cell(obj.numDataInputs, 1);
                 for i = 1:obj.numDataInputs
-                    tf = ismember(tcpip4diac.supportedIEC61499Types, obj.dataInputs{i});
-                    obj.iByteArraySizes(i) = obj.dataTypeByteNums(tf);
+                    tf = tcpip4diac.isSupported(obj.dataInputs{i});
+                    [st, en] = regexp(obj.dataInputs{i}, '\d+');
+                    if ~isempty(st) % Data input specified as array
+                        obj.inputArraySizes(i) = str2double(obj.dataInputs{i}(st:en));
+                        % 4 bytes for headers + array size * byteNums
+                        obj.iByteArraySizes(i) = 4 + obj.inputArraySizes(i) * obj.dataTypeByteNums(tf);
+                    else % Data input specified as value
+                        obj.iByteArraySizes(i) = obj.dataTypeByteNums(tf);
+                    end
                     obj.castIDs{i} = obj.supportedMatlabTypes{tf};
                 end
                 obj.totalIByteArraySize = sum(obj.iByteArraySizes(~isnan(obj.iByteArraySizes)));
                 obj.oByteArraySizes = zeros(obj.numDataOutputs, 1);
                 for i = 1:obj.numDataOutputs
-                    tf = ismember(tcpip4diac.supportedIEC61499Types, obj.dataOutputs{i});
+                    tf = tcpip4diac.isSupported(obj.dataOutputs{i});
+                    [st, en] = regexp(obj.dataOutputs{i}, '\d+');
+                    if ~isempty(st) % Data output specified as array
+                        obj.outputArraySizes(i) = str2double(obj.dataInputs{i}(st:en));
+                        % 4 bytes for headers + array size * byteNums
+                        obj.oByteArraySizes(i) = 4 + obj.outputArraySizes(i) * obj.dataTypeByteNums(tf);
+                    else % Data output specified as value
+                        obj.oByteArraySizes(i) = obj.dataTypeByteNums(tf);
+                    end
                     obj.oByteArraySizes(i) = obj.dataTypeByteNums(tf);
                 end
             end
@@ -436,11 +460,11 @@ classdef tcpip4diac < tcpip
                 % First data input
                 lastIdx = obj.iByteArraySizes(1);
                 data1 = cast(data{1}, obj.castIDs{1});
-                sd(1:lastIdx) = obj.matlabToIEC61499(data1);
+                sd(1:lastIdx) = obj.matlabToIEC61499(data1, 1);
                 for i = 2:obj.numDataInputs
                     tcpip4diac.validateInputSize(data{i})
                     datan = cast(data{i}, obj.castIDs{i});
-                    datan = obj.matlabToIEC61499(datan);
+                    datan = obj.matlabToIEC61499(datan, i);
                     n = obj.iByteArraySizes(i);
                     % Check for correct number of bytes (except for STRING
                     % and WSTRING)
@@ -459,47 +483,69 @@ classdef tcpip4diac < tcpip
                 sd = obj.matlabToIEC61499(data);
             end
         end
-        function sd = matlabToIEC61499(obj, data)
-            [typeID, castID] = obj.getTypeID(data);
+        function sd = matlabToIEC61499(obj, data, inputIdx)
             % Convert to appropriate byte-data that 4diac server FB can
-            % understand
-            if isempty(typeID) % BOOL
-                sd = 64 * data + 65 * ~data;
-            elseif isnumeric(data) % SINT...UDINT / REAL & LREAL
-                if numel(data) == 6 % datevec
-                    % Convert to UNIX
-                    sd = tcpip4diac.datevec2unixvec(data);
-                else % regular double
-                    sd = fliplr(typecast(data, 'uint8'))';
+            % understand (Arrays and non-arrays)
+            % inputIdx: Index of the data input (i.e. 1 for first input)
+            [typeID, castID, numBytes] = obj.getTypeID(data);
+            arrSize = size(data, 1); % Array size
+            if isnumeric(data) && arrSize > 1 % vector-->array
+                if arrSize ~= obj.inputArraySizes(inputIdx)
+                    error('Input array size mismatch')
                 end
-            elseif strcmp(castID, 'char') % STRING
-                sd = [0; uint8(numel(data)); uint8(data)'];
-            elseif strcmp(castID, 'string') % WSTRING
-                val = char(data);
-                tmp = zeros(2*numel(val) + 1, 1, 'uint8');
-                tmp(2:2:end-1) = uint8(val);
-                sd = [0; 6; 0; 39; tmp; 39];
+                sd = zeros(4 + arrSize * numBytes, 1, 'uint8');
+                sd(1) = 118; % Array identifier
+                sd(3) = arrSize;
+                sd(4) = typeID;
+                lastIdx = 4;
+                for i = 1:arrSize
+                    sd(lastIdx+1:lastIdx+numBytes) = tcpip4diac.matlabToIEC61499Value(data(i), castID);
+                    lastIdx = lastIdx + numBytes;
+                end
+            else % Non-array
+                sd = [typeID; tcpip4diac.matlabToIEC61499Value(data, castID)];
             end
-            sd = [typeID; sd];
         end
         function rd = iec61499ToMatlab(obj, sd)
-            if numel(sd) == 1 % BOOL
-                rd = sd == 64;
-            else
-                typeID = sd(1);
-                castID = obj.getCastID(typeID);
-                if typeID == 80 % STRING
-                    rd = char(uint8(sd(4:end))');
-                elseif typeID == 85 % WSTRING
-                    rd = string(char((uint8(sd(5:2:end)'))));
-                elseif typeID == 79 % DATE_AND_TIME
-                    rd = tcpip4diac.unixvec2datevec(sd);
-                else % SINT...UDINT / REAL & LREAL
-                    rd = typecast(flipud(uint8(sd(2:end))), castID);
+            % Converts IEC 61499 byte data to Matlab data (arrays and non-arrays)
+            if sd(1) ~= 118 % Non-array
+                if numel(sd) == 1 % BOOL
+                    rd = sd == 64;
+                else
+                    typeID = sd(1);
+                    if typeID == 80 % STRING
+                        rd = char(uint8(sd(4:end))');
+                    elseif typeID == 85 % WSTRING
+                        rd = string(char((uint8(sd(5:2:end)'))));
+                    else
+                        rd = tcpip4diac.iec61499ToMatlabValue(obj, sd, obj.getCastID(typeID));
+                    end
+                end
+            else % Array
+                arrSize = sd(3);
+                if sd(4) == 64 || sd(4) == 65 % BOOL array
+                    rd = sd(4:end) == 64;
+                else
+                    typeID = sd(4);
+                    if typeID == 80 || typeID == 85
+                        error('Arrays of STRING and WSTRING not yet supported.')
+                    end
+                    rd = zeros(arrSize, 1);
+                    lastIdx = 4;
+                    [castID, numBytes] = obj.getCastID(typeID);
+                    for i = 1:arrSize
+                        rd(i) = tcpip4diac.iec61499ToMatlabValue(obj, sd(lastIdx+1:lastIdx+numBytes), castID);
+                        lastIdx = lastIdx + numBytes;
+                    end
                 end
             end
-        end
-        function [typeID, castID] = getTypeID(obj, data)
+        end     
+        function [typeID, castID, numBytes] = getTypeID(obj, data)
+            % typeID: string representing IEC 61499 type ID (i.e. 75 for LREAL)
+            % castID: string representing Equivalent Matlab type (i.e.
+            %         'double')
+            % numBytes: Number of bytes used to represent the data type
+            %         (excluding typeID) 
             castID = class(data);
             idx = find(ismember(obj.supportedMatlabTypes, castID), 1);
             if ~isempty(idx)
@@ -507,14 +553,19 @@ classdef tcpip4diac < tcpip
                     idx = 14;
                 end
                 typeID = obj.supportedTypeIDs(idx-1);
+                numBytes = obj.dataTypeByteNums(idx) - 1;
             else
                 error(['The data type "', castID, '" is currently unsupported.'])
             end
         end
-        function castID = getCastID(obj, typeID)
+        function [castID, numBytes] = getCastID(obj, typeID)
+            % castID: string representing Matlab type (i.e. 'double')
+            % numBytes: Number of bytes used to represent the corresponding
+            %           IEC 61499 data type (excluding typeID) 
             idx = find(obj.supportedTypeIDs == typeID, 1);
             if ~isempty(idx)
                 castID = obj.supportedMatlabTypes{idx+1};
+                numBytes = obj.dataTypeByteNums(idx+1) - 1;
                 if strcmp(castID, 'datevec')
                     castID = 'double';
                 end
@@ -548,13 +599,44 @@ classdef tcpip4diac < tcpip
     end
     
     methods (Static, Access = 'protected')
+        function sd = matlabToIEC61499Value(data, castID)
+            % Convert to appropriate byte-data that 4diac server FB can
+            % understand (non-arrays)
+            if isempty(typeID) % BOOL
+                sd = 64 * data + 65 * ~data;
+            elseif isnumeric(data) % SINT...UDINT / REAL & LREAL
+                if numel(data) == 6 % datevec
+                    % Convert to UNIX
+                    sd = tcpip4diac.datevec2unixvec(data);
+                else % regular double
+                    sd = fliplr(typecast(data, 'uint8'))';
+                end
+            elseif strcmp(castID, 'char') % STRING
+                sd = [0; uint8(numel(data)); uint8(data)'];
+            elseif strcmp(castID, 'string') % WSTRING
+                val = char(data);
+                tmp = zeros(2*numel(val) + 1, 1, 'uint8');
+                tmp(2:2:end-1) = uint8(val);
+                sd = [0; 6; 0; 39; tmp; 39];
+            end
+        end 
+        function rd = iec61499ToMatlabValue(sd, castID)
+            % Converts IEC 61499 byte data to Matlab data (non-arrays)
+            if typeID == 79 % DATE_AND_TIME
+                rd = tcpip4diac.unixvec2datevec(sd);
+            else % SINT...UDINT / REAL & LREAL
+                rd = typecast(flipud(uint8(sd(2:end))), castID);
+            end
+        end
         function validateInputSize(dat)
             % Method to validate that double data input is either 1x1 (ANY_NUM) or
             % 1x6 (DATE_AND_TIME)
-            ne = numel(dat);
+            ne = size(dat, 2);
             if ne ~= 1
                 if  ne ~= 1 && ne ~= 6 && isnumeric(dat)
-                    error('Numeric data input has wrong number of elements.')
+                    error(['Numeric data input has wrong number of elements. ', ...
+                        'Vectors/arrays must be Nx1 and datetime doubles must be Nx6.', ...
+                        'All other numeric data must be 1x1.'])
                 end
             end
         end
@@ -579,7 +661,8 @@ classdef tcpip4diac < tcpip
             tf = true;
             if ~isempty(x) % Empty if set to zero
                 for i = 1:numel(x)
-                    tf = tf & ischar(validatestring(x{i}, tcpip4diac.supportedIEC61499Types));
+                    % Compare data using regexMatch static method
+                    tf = tf & any(tcpip4diac.isSupported(x{i}));
                 end
             end
         end
@@ -591,6 +674,16 @@ classdef tcpip4diac < tcpip
             % Validate using input validation method
             tf = tcpip4diac.validateDataInputs(x);
         end
+        function tf = isSupported(str)
+            tf = cell2mat(cellfun(@(x) tcpip4diac.regexpMatch(str, x), ...
+                        tcpip4diac.supportedIEC61499Types, 'UniformOutput', false));
+        end
+        function tf = regexpMatch(str, expr)
+            [st, en] = regexp(str, expr);
+            tf = st == 1 & en <= numel(expr);
+            if isempty(tf)
+                tf = false;
+            end
+        end
     end
 end
-
