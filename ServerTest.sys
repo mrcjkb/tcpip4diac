@@ -88,6 +88,30 @@
       </DataConnections>
     </SubAppNetwork>
   </Application>
+  <Application Name="ServerTestApp4">
+    <SubAppNetwork>
+      <FB Name="VALUES2ARRAY_2_LREAL" Type="VALUES2ARRAY_2_LREAL" x="760.0" y="1045.0"/>
+      <FB Name="SERVER_1_1" Type="SERVER_1" x="4465.0" y="950.0">
+        <Parameter Name="QI" Value="TRUE"/>
+        <Parameter Name="ID" Value="localhost:61500"/>
+      </FB>
+      <FB Name="ARRAY2ARRAY_2_LREAL" Type="ARRAY2ARRAY_2_LREAL" x="2755.0" y="1045.0"/>
+      <FB Name="LREAL2LREAL_4" Type="LREAL2LREAL" x="5510.0" y="1045.0"/>
+      <EventConnections>
+        <Connection Destination="ARRAY2ARRAY_2_LREAL.REQ" Source="VALUES2ARRAY_2_LREAL.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="SERVER_1_1.RSP" Source="ARRAY2ARRAY_2_LREAL.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="LREAL2LREAL_4.REQ" Source="SERVER_1_1.IND" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="VALUES2ARRAY_2_LREAL.REQ" Source="LREAL2LREAL_4.CNF" dx1="190.0" dx2="-515.0" dy="595.0"/>
+      </EventConnections>
+      <DataConnections>
+        <Connection Destination="ARRAY2ARRAY_2_LREAL.IN" Source="VALUES2ARRAY_2_LREAL.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="LREAL2LREAL_4.IN" Source="SERVER_1_1.RD_1" dx1="0.0" dx2="0.0" dy="0.0"/>
+        <Connection Destination="VALUES2ARRAY_2_LREAL.IN_1" Source="LREAL2LREAL_4.OUT" dx1="0.0" dx2="-295.0" dy="245.0"/>
+        <Connection Destination="VALUES2ARRAY_2_LREAL.IN_2" Source="LREAL2LREAL_4.OUT" dx1="0.0" dx2="-300.0" dy="205.0"/>
+        <Connection Destination="SERVER_1_1.SD_1" Source="ARRAY2ARRAY_2_LREAL.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
+      </DataConnections>
+    </SubAppNetwork>
+  </Application>
   <Device Name="FORTE_PC" Type="FORTE_PC" x="3155.0" y="1580.0">
     <Attribute Name="Color" Value="102,113,195"/>
     <Attribute Name="Profile" Value="HOLOBLOC"/>
@@ -184,6 +208,31 @@
         </DataConnections>
       </FBNetwork>
     </Resource>
+    <Resource Name="ServerTestApp4" Type="EMB_RES">
+      <FBNetwork>
+        <FB Name="SERVER_1_1" Type="SERVER_1" x="4465.0" y="950.0">
+          <Parameter Name="QI" Value="TRUE"/>
+          <Parameter Name="ID" Value="localhost:61500"/>
+        </FB>
+        <FB Name="ARRAY2ARRAY_2_LREAL" Type="ARRAY2ARRAY_2_LREAL" x="2755.0" y="1235.0"/>
+        <FB Name="VALUES2ARRAY_2_LREAL" Type="VALUES2ARRAY_2_LREAL" x="1425.0" y="1235.0"/>
+        <FB Name="LREAL2LREAL_4" Type="LREAL2LREAL" x="5510.0" y="1045.0"/>
+        <EventConnections>
+          <Connection Destination="SERVER_1_1.RSP" Source="ARRAY2ARRAY_2_LREAL.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="ARRAY2ARRAY_2_LREAL.REQ" Source="VALUES2ARRAY_2_LREAL.CNF" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="SERVER_1_1.INIT" Source="START.COLD" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="LREAL2LREAL_4.REQ" Source="SERVER_1_1.IND" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="VALUES2ARRAY_2_LREAL.REQ" Source="LREAL2LREAL_4.CNF" dx1="190.0" dx2="-515.0" dy="595.0"/>
+        </EventConnections>
+        <DataConnections>
+          <Connection Destination="ARRAY2ARRAY_2_LREAL.IN" Source="VALUES2ARRAY_2_LREAL.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="LREAL2LREAL_4.IN" Source="SERVER_1_1.RD_1" dx1="0.0" dx2="0.0" dy="0.0"/>
+          <Connection Destination="VALUES2ARRAY_2_LREAL.IN_1" Source="LREAL2LREAL_4.OUT" dx1="0.0" dx2="-295.0" dy="245.0"/>
+          <Connection Destination="VALUES2ARRAY_2_LREAL.IN_2" Source="LREAL2LREAL_4.OUT" dx1="0.0" dx2="-300.0" dy="205.0"/>
+          <Connection Destination="SERVER_1_1.SD_1" Source="ARRAY2ARRAY_2_LREAL.OUT" dx1="0.0" dx2="0.0" dy="0.0"/>
+        </DataConnections>
+      </FBNetwork>
+    </Resource>
   </Device>
   <Mapping From="ServerTestApp.F_ADD" To="FORTE_PC.ServerTestApp.F_ADD"/>
   <Mapping From="ServerTestApp.SERVER_1_0" To="FORTE_PC.ServerTestApp.SERVER_1_0"/>
@@ -200,6 +249,10 @@
   <Mapping From="ServerTestApp2.LREAL2LREAL_0" To="FORTE_PC.ServerTestApp2.LREAL2LREAL_0"/>
   <Mapping From="ServerTestApp3.SERVER_1" To="FORTE_PC.ServerTestApp3.SERVER_1"/>
   <Mapping From="ServerTestApp3.F_ADD_DT_TIME" To="FORTE_PC.ServerTestApp3.F_ADD_DT_TIME"/>
+  <Mapping From="ServerTestApp4.VALUES2ARRAY_2_LREAL" To="FORTE_PC.ServerTestApp4.VALUES2ARRAY_2_LREAL"/>
+  <Mapping From="ServerTestApp4.SERVER_1_1" To="FORTE_PC.ServerTestApp4.SERVER_1_1"/>
+  <Mapping From="ServerTestApp4.ARRAY2ARRAY_2_LREAL" To="FORTE_PC.ServerTestApp4.ARRAY2ARRAY_2_LREAL"/>
+  <Mapping From="ServerTestApp4.LREAL2LREAL_4" To="FORTE_PC.ServerTestApp4.LREAL2LREAL_4"/>
   <Segment Name="Ethernet" Type="Ethernet" dx1="1500.0" x="3040.0" y="1155.0"/>
   <Link CommResource="FORTE_PC" Comment="" SegmentName="Ethernet"/>
 </System>

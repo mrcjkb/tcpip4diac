@@ -20,7 +20,6 @@ classdef tcpip4diac < tcpip
     % 	--> To specify additional options.
     %
     %
-    %
     % The above syntax initializes a TCP/IP object that is capable of communicating with SERVER_1 or CLIENT_1 function blocks, respectively.
     % To communicate with CSIFBs that have multiple data inputs/outputs, use the 'DataInputs' and 'DataOutputs' options, as shown in the following examples.
     % The DataInputs are sent to the client/server FB on FORTE and the DataOutputs are received from the client/server FB on FORTE. The amount of inputs
@@ -38,6 +37,14 @@ classdef tcpip4diac < tcpip
     % Server with no inputs and 1 output
     % 	>> dataInputs = {};
     % 	>> t = tcpip4diac('server', '0.0.0.0', 61500, 'DataInputs', dataInputs);
+    %
+    % Arrays must be specified with the array's number of elements behind the
+    % specifier string, e.g.
+    %   >> dataInputs = {'LREAL21'; 'LREAL96'};
+    % for two array inputs - one with 21 elements and one with 96.
+    % Note: The sending/receiving of arrays has so far been extensively tested with LREAL data types. Other numeric data types as well as
+    % DATE_AND_TIME and BOOLEAN are supported, but have not been tested extensively. WSTRING and STRING arrays are not yet supported.
+    %
     %
     % To initialize or deinitialize the connection, use the following syntax, where qi is true for initialization and false for deinitialization:
     %
@@ -63,6 +70,7 @@ classdef tcpip4diac < tcpip
     % data types expected by the IEC 61499 CSIFB. The returned output data types out1, ... outM (where N is the number of CSIFB inputs)
     % depend on the corresponding IEC 61499 FB input data types. For CSIFBs with a single data input, the input in1 must be casted to the
     % corresponding Matlab data type before passing it to the req() function.
+    % To send an array, pass the data as an Nx1 vector.
     %
     % For a single data input:
     %   >> [out1, out2, out3, ..., outM] = req(t, in1);
@@ -93,8 +101,9 @@ classdef tcpip4diac < tcpip
     % 	>> inData = {in1, ... inN}; % cell array of inputs
     % 	>> rsp(t, inData)
     %
-    % A 4diac system "ServerTest" is provided as a demo.
-    % It provides similar functionality as the Xplus3 application that comes with 4diac-IDE.
+    % Two 4diac systems "ServerTest" and "ClientTest" are provided as demos
+    % along with a demo_script that uses tcpip4diac objects to communicate
+    % with the FORTE applications.
     %
     % Aside from the above methods, the regular tcpip methods work, too.
     % Using fwrite() will send byte-data and using fread() will receive byte-data, for example.
@@ -123,15 +132,15 @@ classdef tcpip4diac < tcpip
     % 						|								|	above (cast to string).
     %       DATE_AND_TIME   |           1x6 double          |   According to Matlab's datevec
     %                       |                               |   format.
+    %       array           |           Nx1 vector          |   STRING and WSTRING not yet 
+    %                       |                               |   supported. Only LREAL tested 
+    %                       |                               |   extensively.
     %
     % Please report bugs in the GitHub issue tracker. I am also glad for anyone who commits improvements.
     %
     % SEE ALSO: tcpip
     %
     % Author: Marc Jakobi, May 2017, HTW-Berlin
-    
-    %MTODO: Update doc & readme. Note that arrays have only been
-    %extensively tested for LREAL data type
     
     properties (Hidden, Access = 'protected')
         % True for client, false for server
@@ -214,10 +223,12 @@ classdef tcpip4diac < tcpip
             %  	>> dataInputs = {};
             %  	>> t = tcpip4diac('server', '0.0.0.0', 61500, 'DataInputs', dataInputs);
             %
-            %  Because STRING and WSTRING have variable byte lengths, only a single STRING or WSTRING output is supported and it
-            %  must be the last output. For receival of multiple STRING/WSTRING data from 4diac, it is advised to combine them
-            %  into a single STRING. Regular expressions (regex) or strfind can be used to separate the received data.
-            %  Matlab currently does not support wchar, so use of STRING is recommended.
+            % Arrays must be specified with the array's number of elements behind the
+            % specifier string, e.g.
+            %   >> dataInputs = {'LREAL21'; 'LREAL96'};
+            % for two array inputs - one with 21 elements and one with 96.
+            % Note: The sending/receiving of arrays has so far been extensively tested with LREAL data types. Other numeric data types as well as
+            % DATE_AND_TIME and BOOLEAN are supported, but have not been tested extensively. WSTRING and STRING arrays are not yet supported.
             if nargin < 3
                 port = 61500;
                 if nargin < 2
@@ -356,6 +367,7 @@ classdef tcpip4diac < tcpip
             %  data types expected by the IEC 61499 CSIFB. The returned output data types out1, ... outM (where N is the number of CSIFB inputs)
             %  depend on the corresponding IEC 61499 FB input data types. For CSIFBs with a single data input, the input in1 must be casted to the
             %  corresponding Matlab data type before passing it to the req() function.
+            %  To send an array, pass the data as an Nx1 vector.
             %
             %  For a single data input:
             %     >> [out1, out2, out3, ..., outM] = req(t, in1);
@@ -371,7 +383,8 @@ classdef tcpip4diac < tcpip
             if ~obj.roleFlag % Server object?
                 error('Method "req" only valid for client objects.')
             end
-            obj.chkNumDataInputs(size(data,1))
+            iCell = iscell(data); % more than 1 data input --> cell array
+            obj.chkNumDataInputs(~iCell * 1 + iCell * size(data,1))
             obj.chkNumDataOutputs(nargout)
             if nargin > 1
                 sd = obj.matlabToByteData(data);
@@ -480,7 +493,7 @@ classdef tcpip4diac < tcpip
                 end
             else % only 1 input
                 tcpip4diac.validateInputSize(data) 
-                sd = obj.matlabToIEC61499(data);
+                sd = obj.matlabToIEC61499(data, 1);
             end
         end
         function sd = matlabToIEC61499(obj, data, inputIdx)
@@ -499,11 +512,12 @@ classdef tcpip4diac < tcpip
                 sd(4) = typeID;
                 lastIdx = 4;
                 for i = 1:arrSize
-                    sd(lastIdx+1:lastIdx+numBytes) = tcpip4diac.matlabToIEC61499Value(data(i), castID);
+                    sd(lastIdx+1:lastIdx+numBytes) = tcpip4diac.matlabToIEC61499Value(data(i), ...
+                        castID, typeID);
                     lastIdx = lastIdx + numBytes;
                 end
             else % Non-array
-                sd = [typeID; tcpip4diac.matlabToIEC61499Value(data, castID)];
+                sd = [typeID; tcpip4diac.matlabToIEC61499Value(data, castID, typeID)];
             end
         end
         function rd = iec61499ToMatlab(obj, sd)
@@ -518,7 +532,7 @@ classdef tcpip4diac < tcpip
                     elseif typeID == 85 % WSTRING
                         rd = string(char((uint8(sd(5:2:end)'))));
                     else
-                        rd = tcpip4diac.iec61499ToMatlabValue(obj, sd, obj.getCastID(typeID));
+                        rd = tcpip4diac.iec61499ToMatlabValue(obj, sd(2:end), obj.getCastID(typeID), typeID);
                     end
                 end
             else % Array
@@ -534,7 +548,8 @@ classdef tcpip4diac < tcpip
                     lastIdx = 4;
                     [castID, numBytes] = obj.getCastID(typeID);
                     for i = 1:arrSize
-                        rd(i) = tcpip4diac.iec61499ToMatlabValue(obj, sd(lastIdx+1:lastIdx+numBytes), castID);
+                        rd(i) = tcpip4diac.iec61499ToMatlabValue(sd(lastIdx+1:lastIdx+numBytes), ...
+                            castID, typeID);
                         lastIdx = lastIdx + numBytes;
                     end
                 end
@@ -599,7 +614,7 @@ classdef tcpip4diac < tcpip
     end
     
     methods (Static, Access = 'protected')
-        function sd = matlabToIEC61499Value(data, castID)
+        function sd = matlabToIEC61499Value(data, castID, typeID)
             % Convert to appropriate byte-data that 4diac server FB can
             % understand (non-arrays)
             if isempty(typeID) % BOOL
@@ -620,12 +635,12 @@ classdef tcpip4diac < tcpip
                 sd = [0; 6; 0; 39; tmp; 39];
             end
         end 
-        function rd = iec61499ToMatlabValue(sd, castID)
+        function rd = iec61499ToMatlabValue(sd, castID, typeID)
             % Converts IEC 61499 byte data to Matlab data (non-arrays)
             if typeID == 79 % DATE_AND_TIME
                 rd = tcpip4diac.unixvec2datevec(sd);
             else % SINT...UDINT / REAL & LREAL
-                rd = typecast(flipud(uint8(sd(2:end))), castID);
+                rd = typecast(flipud(uint8(sd)), castID);
             end
         end
         function validateInputSize(dat)
