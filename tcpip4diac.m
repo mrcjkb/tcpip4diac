@@ -26,15 +26,18 @@ classdef tcpip4diac < tcpip
     % must be equal to the amount of outputs of the corresponding CSIFB on FORTE and vice versa for the amount of outputs.
     %
     % Server with 2 inputs and 1 output
+    %
     % 	>> dataInputs = {'UINT'; 'LREAL'}; % Specify the IEC 61499 data input types that are expected in a cell array.
     % 	>> t = tcpip4diac('server', '0.0.0.0', 61500, 'DataInputs', dataInputs);
     %
     % Server with 3 outputs and 2 inputs
+    %
     % 	>> dataOutputs = {'UINT'; 'LREAL'; 'LREAL'};
     % 	>> dataInputs = {'UINT'; 'LREAL'};
     % 	>> t = tcpip4diac('server', '0.0.0.0', 61500, 'DataInputs', dataInputs, 'DataOutputs', dataOutputs);
     %
     % Server with no inputs and 1 output
+    %
     % 	>> dataInputs = {};
     % 	>> t = tcpip4diac('server', '0.0.0.0', 61500, 'DataInputs', dataInputs);
     %
@@ -73,13 +76,16 @@ classdef tcpip4diac < tcpip
     % To send an array, pass the data as an Nx1 vector.
     %
     % For a single data input:
+    %
     %   >> [out1, out2, out3, ..., outM] = req(t, in1);
     %
     % For multiple data inputs:
+    %
     %   >> inData = {in1, in2, in3, ..., inN}; % cell-array of inputs
     % 	>> [out1, out2, out3, ..., outM] = req(t, inData);
     %
     % To send DATE_AND_TIME data, use Matlab's "datevec" format:
+    %
     %   >> in1 = datevec(now);
     %   >> [out1, out2, out3, ..., outM] = req(t, in1);
     %
@@ -88,18 +94,26 @@ classdef tcpip4diac < tcpip
     % or a timeout (specified in seconds) is reached. The default timeout is inf, if not specified.
     % Unfortunately, Matlab's TCP/IP implementation does not appear to provide a method for using callback functions.
     % The data types of the outputs out1, ..., outM correspond with the data types of the CSIFB input SD1, ... SDN.
-    %
+
     % 	>> [out1, out2, out3, ..., outN] = waitForData(t);
     % 	>> [out1, out2, out3, ..., outN] = waitForData(t, timeoutS);
+    %
+    % To await a response and ignore data outputs, the awaitResponse() method can be used. It does not return until
+    % a response is received.
+    %
+    %   >> awaitResponse(t)
     %
     % To send a response, use the rsp() method:
     %
     % For a single data input:
+    %
     %  	>> rsp(t, in1)
     %
     % For multiple data inputs:
+    %
     % 	>> inData = {in1, ... inN}; % cell array of inputs
     % 	>> rsp(t, inData)
+    %
     %
     % Two 4diac systems "ServerTest" and "ClientTest" are provided as demos
     % along with a demo_script that uses tcpip4diac objects to communicate
@@ -397,14 +411,17 @@ classdef tcpip4diac < tcpip
             end
             iCell = iscell(data); % more than 1 data input --> cell array
             obj.chkNumDataInputs(~iCell * 1 + iCell * numel(data))
-            obj.chkNumDataOutputs(nargout)
             if nargin > 1
                 sd = obj.matlabToByteData(data);
                 fwrite(obj, sd)
             else
                 fwrite(obj, 5) % No data inputs
             end
-            [varargout{1:nargout}] = waitForData(obj);
+            if nargout > 0
+                [varargout{1:nargout}] = waitForData(obj);
+            else
+                awaitResponse(obj);
+            end
         end
         function rsp(obj, data)
             % RSP: Sends a response to a CLIENT function block.
@@ -439,18 +456,7 @@ classdef tcpip4diac < tcpip
             %  	>> [out1, out2, out3, ..., outN] = waitForData(t);
             %  	>> [out1, out2, out3, ..., outN] = waitForData(t, timeoutS);
             obj.chkNumDataOutputs(nargout)
-            if nargin < 2
-                timeoutS = inf;
-            end
-            tic
-            ba = get(obj, 'BytesAvailable');
-            while ba == 0
-                ba = get(obj, 'BytesAvailable');
-                if toc > timeoutS
-                    error('Connection timed out.')
-                end
-            end
-            sd = fread(obj, ba);
+            sd = obj.awaitResponse(timeoutS);
             if obj.numDataOutputs == 1
                 varargout{1} = obj.iec61499ToMatlab(sd);
             elseif obj.numDataOutputs == 0
@@ -473,6 +479,34 @@ classdef tcpip4diac < tcpip
                     varargout{i} = obj.iec61499ToMatlab(sd(lastIdx+1:lastIdx+n));
                     lastIdx = lastIdx + n;
                 end
+            end
+        end
+        function sd = awaitResponse(obj, timeoutS)
+            % AWAITRESPONSE: Does not return until the corresponding SERVER
+            % FB has sent a response.
+            %
+            % Syntax:
+            %
+            %   awaitResponse(t)            % Waits without timeout
+            %   awaitResponse(t, timeoutS)  % Specify timeout in s
+            %   sd = awaitResponse(__);     % Returns the byte data
+            if nargin < 2
+                timeoutS = inf;
+            end
+            if nargin < 2
+                timeoutS = inf;
+            end
+            tic
+            ba = get(obj, 'BytesAvailable');
+            while ba == 0
+                ba = get(obj, 'BytesAvailable');
+                if toc > timeoutS
+                    error('Connection timed out.')
+                end
+            end
+            rd = fread(obj, ba);
+            if nargout > 0
+                sd = rd;
             end
         end
     end
