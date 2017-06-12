@@ -502,7 +502,8 @@ classdef tcpip4diac < tcpip
             end
             tic
             ba = get(obj, 'BytesAvailable');
-            while ba == 0
+            % Wait for arrival of all bytes being sent
+            while ba == 0 || get(obj, 'BytesAvailable') > ba
                 ba = get(obj, 'BytesAvailable');
                 if toc > timeoutS
                     error('Connection timed out.')
