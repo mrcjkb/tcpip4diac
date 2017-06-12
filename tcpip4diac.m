@@ -172,9 +172,9 @@ classdef tcpip4diac < tcpip
         % Size of the output byte arrays
         oByteArraySizes;
         % Sizes of the input arrays (if arrays specified)
-        inputArraySizes = ones(14, 1);
+        inputArraySizes;
         % Sizes of the output arrays (if arrays specified)
-        outputArraySizes = ones(14, 1);
+        outputArraySizes;
         % Total size of the input byte array that is sent over the network
         totalIByteArraySize;
         % Identifiers for data types to cast to
@@ -280,6 +280,7 @@ classdef tcpip4diac < tcpip
                 obj.numDataOutputs = numel(obj.dataOutputs);
                 obj.iByteArraySizes = zeros(obj.numDataInputs, 1);
                 obj.castIDs = cell(obj.numDataInputs, 1);
+                obj.inputArraySizes = ones(obj.numDataInputs, 1);
                 for i = 1:obj.numDataInputs
                     tf = tcpip4diac.isSupported(obj.dataInputs{i});
                     [st, en] = regexp(obj.dataInputs{i}, '\d+');
@@ -302,6 +303,7 @@ classdef tcpip4diac < tcpip
                 end
                 obj.totalIByteArraySize = sum(obj.iByteArraySizes(~isnan(obj.iByteArraySizes)));
                 obj.oByteArraySizes = zeros(obj.numDataOutputs, 1);
+                obj.outputArraySizes = ones(obj.numDataOutputs, 1);
                 for i = 1:obj.numDataOutputs
                     tf = tcpip4diac.isSupported(obj.dataOutputs{i});
                     [st, en] = regexp(obj.dataOutputs{i}, '\d+');
@@ -500,15 +502,16 @@ classdef tcpip4diac < tcpip
             end
             tic
             ba = get(obj, 'BytesAvailable');
-            % Uncommenting the following lines and the third || condition
-            % may add additional security, but may also cause longer
-            % waiting times or infinite loops
-%             minExpectedBytes = sum(obj.oByteArraySizes);
-%             if isnan(minExpectedBytes)
-%                 minExpectedBytes = 0;
-%             end
+            % Determine minimum bytes to wait for
+            % for additional security
+            obas = obj.oByteArraySizes - 1;
+            obas(isnan(obas)) = 0;
+            oas = obj.outputArraySizes;
+            ids = ones(size(oas));
+            ids(oas > 1) = 4;
+            minExpectedBytes = sum(obas * oas + ids);
             % Wait for arrival of all bytes being sent
-            while ba == 0 || get(obj, 'BytesAvailable') > ba %|| ba < minExpectedBytes
+            while ba == 0 || get(obj, 'BytesAvailable') > ba || ba < minExpectedBytes
                 ba = get(obj, 'BytesAvailable');
                 if toc > timeoutS
                     error('Connection timed out.')
