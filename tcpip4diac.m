@@ -509,9 +509,10 @@ classdef tcpip4diac < tcpip
             oas = obj.outputArraySizes;
             ids = ones(size(oas));
             ids(oas > 1) = 4;
-            minExpectedBytes = sum(obas * oas + ids);
-            if isempty(minExpectedBytes) % No outputs
+            if isempty(obas) % No outputs
                 minExpectedBytes = 0;
+            else
+                minExpectedBytes = sum(obas * oas + ids);
             end
             % Wait for arrival of all bytes being sent
             while ba == 0 || get(obj, 'BytesAvailable') > ba || ba < minExpectedBytes
