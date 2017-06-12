@@ -440,7 +440,7 @@ classdef tcpip4diac < tcpip
                 error('Method "rsp" only valid for server objects.')
             end
             if nargin > 1
-                sd = obj.matlabToByteData(data);
+                sd = obj.matlabToByteData(data, inf);
                 fwrite(obj, sd)
             else
                 fwrite(obj, 5) % No data inputs
@@ -455,6 +455,7 @@ classdef tcpip4diac < tcpip
             %  The data types of the outputs out1, ..., outM correspond with the data types of the CSIFB input SD1, ... SDN.
             %
             %  	>> [out1, out2, out3, ..., outN] = waitForData(t);
+            % Specify timeout in s
             %  	>> [out1, out2, out3, ..., outN] = waitForData(t, timeoutS);
             obj.chkNumDataOutputs(nargout)
             if nargin < 2
@@ -497,13 +498,17 @@ classdef tcpip4diac < tcpip
             if nargin < 2
                 timeoutS = inf;
             end
-            if nargin < 2
-                timeoutS = inf;
-            end
             tic
             ba = get(obj, 'BytesAvailable');
+            % Uncommenting the following lines and the third || condition
+            % may add additional security, but may also cause longer
+            % waiting times or infinite loops
+%             minExpectedBytes = sum(obj.oByteArraySizes);
+%             if isnan(minExpectedBytes)
+%                 minExpectedBytes = 0;
+%             end
             % Wait for arrival of all bytes being sent
-            while ba == 0 || get(obj, 'BytesAvailable') > ba
+            while ba == 0 || get(obj, 'BytesAvailable') > ba %|| ba < minExpectedBytes
                 ba = get(obj, 'BytesAvailable');
                 if toc > timeoutS
                     error('Connection timed out.')
@@ -559,7 +564,8 @@ classdef tcpip4diac < tcpip
                 end
                 sd = zeros(4 + arrSize * numBytes, 1, 'uint8');
                 sd(1) = 118; % Array identifier
-                sd(3) = arrSize;
+                sd(2) = floor(arrSize) / 256;
+                sd(3) = arrSize - sd(2) * 256;
                 sd(4) = typeID;
                 lastIdx = 4;
                 for i = 1:arrSize
@@ -587,7 +593,7 @@ classdef tcpip4diac < tcpip
                     end
                 end
             else % Array
-                arrSize = sd(3);
+                arrSize = sd(2) * 256 + sd(3);
                 if sd(4) == 64 || sd(4) == 65 % BOOL array
                     rd = sd(4:end) == 64;
                 else
