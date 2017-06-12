@@ -276,7 +276,11 @@ classdef tcpip4diac < tcpip
                     else % Data input specified as value
                         obj.iByteArraySizes(i) = obj.dataTypeByteNums(tf);
                     end
-                    obj.castIDs{i} = obj.supportedMatlabTypes{tf};
+                    castID = obj.supportedMatlabTypes{tf};
+                    if strcmp(castID, 'datevec')
+                        castID = 'double';
+                    end
+                    obj.castIDs{i} = castID;
                 end
                 obj.totalIByteArraySize = sum(obj.iByteArraySizes(~isnan(obj.iByteArraySizes)));
                 obj.oByteArraySizes = zeros(obj.numDataOutputs, 1);
@@ -650,7 +654,7 @@ classdef tcpip4diac < tcpip
             if ne ~= 1
                 if  ne ~= 1 && ne ~= 6 && isnumeric(dat)
                     error(['Numeric data input has wrong number of elements. ', ...
-                        'Vectors/arrays must be Nx1 and datetime doubles must be Nx6.', ...
+                        'Vectors/arrays must be Nx1 and datetime doubles must be Nx6. ', ...
                         'All other numeric data must be 1x1.'])
                 end
             end
