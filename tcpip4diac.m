@@ -411,6 +411,7 @@ classdef tcpip4diac < tcpip
             end
             iCell = iscell(data); % more than 1 data input --> cell array
             obj.chkNumDataInputs(~iCell * 1 + iCell * numel(data))
+            flushinput(obj) % Flush input in case there is data left over from last response
             if nargin > 1
                 sd = obj.matlabToByteData(data);
                 fwrite(obj, sd)
