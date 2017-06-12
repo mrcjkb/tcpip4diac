@@ -273,6 +273,10 @@ classdef tcpip4diac < tcpip
                         obj.inputArraySizes(i) = str2double(obj.dataInputs{i}(st:en));
                         % 4 bytes for headers + array size * byteNums
                         obj.iByteArraySizes(i) = 4 + obj.inputArraySizes(i) * obj.dataTypeByteNums(tf);
+                        % Increase OutputBufferSize if necessary
+                        if get(obj, 'OutputBufferSize') < obj.iByteArraySizes(i)
+                            set(obj, 'OutputBufferSize', obj.iByteArraySizes(i));
+                        end
                     else % Data input specified as value
                         obj.iByteArraySizes(i) = obj.dataTypeByteNums(tf);
                     end
@@ -291,6 +295,10 @@ classdef tcpip4diac < tcpip
                         obj.outputArraySizes(i) = str2double(obj.dataOutputs{i}(st:en));
                         % 4 bytes for headers + array size * byteNums
                         obj.oByteArraySizes(i) = 4 + obj.outputArraySizes(i) * obj.dataTypeByteNums(tf);
+                        % Increase InputBufferSize if necessary
+                        if get(obj, 'InputBufferSize') < obj.oByteArraySizes(i)
+                            set(obj, 'InputBufferSize', obj.oByteArraySizes(i));
+                        end
                     else % Data output specified as value
                         obj.oByteArraySizes(i) = obj.dataTypeByteNums(tf);
                     end
