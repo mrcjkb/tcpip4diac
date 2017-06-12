@@ -384,7 +384,7 @@ classdef tcpip4diac < tcpip
                 error('Method "req" only valid for client objects.')
             end
             iCell = iscell(data); % more than 1 data input --> cell array
-            obj.chkNumDataInputs(~iCell * 1 + iCell * size(data,1))
+            obj.chkNumDataInputs(~iCell * 1 + iCell * numel(data))
             obj.chkNumDataOutputs(nargout)
             if nargin > 1
                 sd = obj.matlabToByteData(data);
