@@ -284,7 +284,7 @@ classdef tcpip4diac < tcpip
                     tf = tcpip4diac.isSupported(obj.dataOutputs{i});
                     [st, en] = regexp(obj.dataOutputs{i}, '\d+');
                     if ~isempty(st) % Data output specified as array
-                        obj.outputArraySizes(i) = str2double(obj.dataInputs{i}(st:en));
+                        obj.outputArraySizes(i) = str2double(obj.dataOutputs{i}(st:en));
                         % 4 bytes for headers + array size * byteNums
                         obj.oByteArraySizes(i) = 4 + obj.outputArraySizes(i) * obj.dataTypeByteNums(tf);
                     else % Data output specified as value
