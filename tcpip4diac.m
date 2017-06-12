@@ -596,7 +596,7 @@ classdef tcpip4diac < tcpip
                     elseif typeID == 85 % WSTRING
                         rd = string(char((uint8(sd(5:2:end)'))));
                     else
-                        rd = tcpip4diac.iec61499ToMatlabValue(obj, sd(2:end), obj.getCastID(typeID), typeID);
+                        rd = tcpip4diac.iec61499ToMatlabValue(sd(2:end), obj.getCastID(typeID), typeID);
                     end
                 end
             else % Array
