@@ -442,7 +442,7 @@ classdef tcpip4diac < tcpip
                 error('Method "rsp" only valid for server objects.')
             end
             if nargin > 1
-                sd = obj.matlabToByteData(data, inf);
+                sd = obj.matlabToByteData(data);
                 fwrite(obj, sd)
             else
                 fwrite(obj, 5) % No data inputs
