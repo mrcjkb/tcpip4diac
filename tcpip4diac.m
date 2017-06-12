@@ -746,7 +746,7 @@ classdef tcpip4diac < tcpip
         end
         function tf = regexpMatch(str, expr)
             [st, en] = regexp(str, expr);
-            tf = st == 1 & en <= numel(expr);
+            tf = st == 1 & en <= numel(str);
             if isempty(tf)
                 tf = false;
             end
