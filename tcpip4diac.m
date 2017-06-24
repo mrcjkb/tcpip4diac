@@ -69,8 +69,8 @@ classdef tcpip4diac < tcpip
     %
     %
     % In the client role, use the req() function to send requests to a SERVER FB. This method will not return until a response is received.
-    % For multiple data inputs, the inputs in1, ..., inN (where N is the number of CSIFB inputs) are automatically casted to the respective
-    % data types expected by the IEC 61499 CSIFB. The returned output data types out1, ... outM (where N is the number of CSIFB inputs)
+    % For multiple data inputs, the inputs in1, ..., inN (where N is the number of inputs) are automatically casted to the respective
+    % data types expected by the IEC 61499 CSIFB. The returned output data types out1, ..., outM (where M is the number of outputs)
     % depend on the corresponding IEC 61499 FB input data types. For CSIFBs with a single data input, the input in1 must be casted to the
     % corresponding Matlab data type before passing it to the req() function.
     % To send an array, pass the data as an Nx1 vector.
@@ -287,11 +287,7 @@ classdef tcpip4diac < tcpip
                     if ~isempty(st) % Data input specified as array
                         obj.inputArraySizes(i) = str2double(obj.dataInputs{i}(st:en));
                         % 4 bytes for headers + array size * byteNums
-                        obj.iByteArraySizes(i) = 4 + obj.inputArraySizes(i) * obj.dataTypeByteNums(tf);
-                        % Increase OutputBufferSize if necessary
-                        if get(obj, 'OutputBufferSize') < obj.iByteArraySizes(i)
-                            set(obj, 'OutputBufferSize', obj.iByteArraySizes(i));
-                        end
+                        obj.iByteArraySizes(i) = 4 + obj.inputArraySizes(i) * max(1, (obj.dataTypeByteNums(tf) - 1));
                     else % Data input specified as value
                         obj.iByteArraySizes(i) = obj.dataTypeByteNums(tf);
                     end
@@ -300,6 +296,10 @@ classdef tcpip4diac < tcpip
                         castID = 'double';
                     end
                     obj.castIDs{i} = castID;
+                end
+                % Increase OutputBufferSize if necessary
+                if get(obj, 'OutputBufferSize') < sum(obj.iByteArraySizes)
+                    set(obj, 'OutputBufferSize', sum(obj.iByteArraySizes))
                 end
                 obj.totalIByteArraySize = sum(obj.iByteArraySizes(~isnan(obj.iByteArraySizes)));
                 obj.oByteArraySizes = zeros(obj.numDataOutputs, 1);
@@ -310,15 +310,15 @@ classdef tcpip4diac < tcpip
                     if ~isempty(st) % Data output specified as array
                         obj.outputArraySizes(i) = str2double(obj.dataOutputs{i}(st:en));
                         % 4 bytes for headers + array size * byteNums
-                        obj.oByteArraySizes(i) = 4 + obj.outputArraySizes(i) * obj.dataTypeByteNums(tf);
-                        % Increase InputBufferSize if necessary
-                        if get(obj, 'InputBufferSize') < obj.oByteArraySizes(i)
-                            set(obj, 'InputBufferSize', obj.oByteArraySizes(i));
-                        end
+                        obj.oByteArraySizes(i) = 4 + obj.outputArraySizes(i) * max(1, obj.dataTypeByteNums(tf) - 1);
                     else % Data output specified as value
                         obj.oByteArraySizes(i) = obj.dataTypeByteNums(tf);
                     end
                     obj.oByteArraySizes(i) = obj.dataTypeByteNums(tf);
+                end
+                % Increase InputBufferSize if necessary
+                if get(obj, 'InputBufferSize') < sum(obj.iByteArraySizes)
+                    set(obj, 'InputBufferSize', sum(obj.iByteArraySizes))
                 end
             end
             if strcmp(networkRole, 'client')
@@ -504,7 +504,7 @@ classdef tcpip4diac < tcpip
             ba = get(obj, 'BytesAvailable');
             % Determine minimum bytes to wait for
             % for additional security
-            obas = obj.oByteArraySizes - 1;
+            obas = max(1, obj.oByteArraySizes - 1);
             obas(isnan(obas)) = 0;
             oas = obj.outputArraySizes;
             ids = ones(size(oas));
