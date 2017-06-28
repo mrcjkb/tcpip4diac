@@ -473,7 +473,8 @@ classdef tcpip4diac < tcpip
             % For multiple data inputs:
             % 	>> inData = {in1, ... inN}; % cell array of inputs
             % 	>> rsp(t, inData)
-            obj.chkNumDataInputs(size(data, 1))
+            iCell = iscell(data); % more than 1 data input --> cell array
+            obj.chkNumDataInputs(~iCell * 1 + iCell * numel(data))
             if obj.roleFlag % Client object?
                 error('Method "rsp" only valid for server objects.')
             end
