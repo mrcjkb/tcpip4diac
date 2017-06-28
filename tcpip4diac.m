@@ -114,6 +114,25 @@ classdef tcpip4diac < tcpip
     % 	>> inData = {in1, ... inN}; % cell array of inputs
     % 	>> rsp(t, inData)
     %
+    % To send a request to a SERVER function block without awaiting a
+    % response, the reqNorsp() method can be used.
+    % This method returns regardless of whether a response is received or not.
+    % To await a response, the waitForData() or awaitResponse()
+    % methods must be called manually. Designed for the purpose of
+    % sending data and performing further operations before
+    % awaiting a response.
+    % For multiple data inputs, the inputs in1, ..., inN (where N is the number of CSIFB inputs) are automatically casted to the respective
+    % data types expected by the IEC 61499 CSIFB. The returned output data types out1, ... outM (where N is the number of CSIFB inputs)
+    % depend on the corresponding IEC 61499 FB input data types. For CSIFBs with a single data input, the input in1 must be casted to the
+    % corresponding Matlab data type before passing it to the req() function.
+    % To send an array, pass the data as an Nx1 vector.
+    %
+    % Sytnax:
+    %     >> reqNorsp(t, inData); % send data
+    %     >> % Perform intermediate computations
+    %     >> [out1,..,outN] = waitForData(t);
+    %     >> % Alternative: awaitResponse(t);
+    %
     %
     % Two 4diac systems "ServerTest" and "ClientTest" are provided as demos
     % along with a demo_script that uses tcpip4diac objects to communicate
@@ -398,7 +417,7 @@ classdef tcpip4diac < tcpip
             %  To send an array, pass the data as an Nx1 vector.
             %
             %  For a single data input:
-            %     >> [out1, out2, out3, ..., outM] = req(t, in1);
+            %     >> [out1, out2, out3, ..., outM] = req(t, in);
             %
             %  For multiple data inputs:
             %     >> inData = {in1, in2, in3, ..., inN};  cell-array of inputs
@@ -425,6 +444,28 @@ classdef tcpip4diac < tcpip
             else
                 awaitResponse(obj);
             end
+        end
+        function reqNorsp(obj, data)
+            % REQNORSP: Sends a request to a SERVER function block without awaiting a response.
+            %      To be used by tcpip4diac obejcts in the client role
+            %
+            %  This method returns regardless of whether a response is received or not.
+            %  To await a response, the waitForData() or awaitResponse()
+            %  methods must be called manually. Designed for the purpose of
+            %  sending data and performing further operations before
+            %  awaiting a response.
+            %  For multiple data inputs, the inputs in1, ..., inN (where N is the number of CSIFB inputs) are automatically casted to the respective
+            %  data types expected by the IEC 61499 CSIFB. The returned output data types out1, ... outM (where N is the number of CSIFB inputs)
+            %  depend on the corresponding IEC 61499 FB input data types. For CSIFBs with a single data input, the input in1 must be casted to the
+            %  corresponding Matlab data type before passing it to the req() function.
+            %  To send an array, pass the data as an Nx1 vector.
+            %
+            %  Sytnax:
+            %     >> reqNorsp(t, inData); % send data
+            %     >> % Perform intermediate computations
+            %     >> [out1,..,outN] = waitForData(t);
+            %     >> % Alternative: awaitResponse(t);
+            %
         end
         function rsp(obj, data)
             % RSP: Sends a response to a CLIENT function block.
