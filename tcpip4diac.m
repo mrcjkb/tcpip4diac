@@ -427,18 +427,7 @@ classdef tcpip4diac < tcpip
             %   >> in1 = datevec(now);
             %   >> [out1, out2, out3, ..., outM] = req(t, in1);
             %
-            if ~obj.roleFlag % Server object?
-                error('Method "req" only valid for client objects.')
-            end
-            iCell = iscell(data); % more than 1 data input --> cell array
-            obj.chkNumDataInputs(~iCell * 1 + iCell * numel(data))
-            flushinput(obj) % Flush input in case there is data left over from last response
-            if nargin > 1
-                sd = obj.matlabToByteData(data);
-                fwrite(obj, sd)
-            else
-                fwrite(obj, 5) % No data inputs
-            end
+            reqNorsp(obj, data) % Delegate sending to reqNorsp() method
             if nargout > 0
                 [varargout{1:nargout}] = waitForData(obj);
             else
@@ -465,7 +454,18 @@ classdef tcpip4diac < tcpip
             %     >> % Perform intermediate computations
             %     >> [out1,..,outN] = waitForData(t);
             %     >> % Alternative: awaitResponse(t);
-            %
+            if ~obj.roleFlag % Server object?
+                error('Method "req" only valid for client objects.')
+            end
+            iCell = iscell(data); % more than 1 data input --> cell array
+            obj.chkNumDataInputs(~iCell * 1 + iCell * numel(data))
+            flushinput(obj) % Flush input in case there is data left over from last response
+            if nargin > 1
+                sd = obj.matlabToByteData(data);
+                fwrite(obj, sd)
+            else
+                fwrite(obj, 5) % No data inputs
+            end
         end
         function rsp(obj, data)
             % RSP: Sends a response to a CLIENT function block.
