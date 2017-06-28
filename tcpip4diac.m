@@ -452,8 +452,7 @@ classdef tcpip4diac < tcpip
             if ~obj.roleFlag % Server object?
                 error('Method "req" only valid for client objects.')
             end
-            iCell = iscell(data); % more than 1 data input --> cell array
-            obj.chkNumDataInputs(~iCell * 1 + iCell * numel(data))
+            obj.chkNumDataInputs(data)
             flushinput(obj) % Flush input in case there is data left over from last response
             if nargin > 1
                 sd = obj.matlabToByteData(data);
@@ -473,8 +472,7 @@ classdef tcpip4diac < tcpip
             % For multiple data inputs:
             % 	>> inData = {in1, ... inN}; % cell array of inputs
             % 	>> rsp(t, inData)
-            iCell = iscell(data); % more than 1 data input --> cell array
-            obj.chkNumDataInputs(~iCell * 1 + iCell * numel(data))
+            obj.chkNumDataInputs(data)
             if obj.roleFlag % Client object?
                 error('Method "rsp" only valid for server objects.')
             end
@@ -690,7 +688,8 @@ classdef tcpip4diac < tcpip
             end
         end
         function chkNumDataInputs(obj, n)
-            if n ~= obj.numDataInputs
+            iCell = iscell(n); % more than 1 data input --> cell array
+            if obj.numDataInputs ~= ~iCell * 1 + iCell * numel(n)
                 error('Wrong amount of input arguments.')
             end
         end
