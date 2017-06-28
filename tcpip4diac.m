@@ -661,12 +661,16 @@ classdef tcpip4diac < tcpip
             % numBytes: Number of bytes used to represent the data type
             %         (excluding typeID) 
             castID = class(data);
-            idx = find(ismember(obj.supportedMatlabTypes(2:end), castID), 1) + 1;
+            idx = find(ismember(obj.supportedMatlabTypes, castID), 1);
             if ~isempty(idx)
                 if size(data, 2) == 6 % datevec
-                    idx = 14;
+                    idx = 14; % cast to double
                 end
-                typeID = obj.supportedTypeIDs(idx-1);
+                if idx == 1 % logical
+                    typeID = [];
+                else % non-logical
+                    typeID = obj.supportedTypeIDs(idx-1);
+                end
                 numBytes = obj.dataTypeByteNums(idx) - 1;
             else
                 error(['The data type "', castID, '" is currently unsupported.'])
