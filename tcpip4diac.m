@@ -661,7 +661,7 @@ classdef tcpip4diac < tcpip
             % numBytes: Number of bytes used to represent the data type
             %         (excluding typeID) 
             castID = class(data);
-            idx = find(ismember(obj.supportedMatlabTypes, castID), 1);
+            idx = find(ismember(obj.supportedMatlabTypes(2:end), castID), 1) + 1;
             if ~isempty(idx)
                 if size(data, 2) == 6 % datevec
                     idx = 14;
