@@ -125,11 +125,6 @@ To await a response, the waitForData() or awaitResponse()
 methods must be called manually. Designed for the purpose of
 sending data and performing further operations before
 awaiting a response.
-For multiple data inputs, the inputs in1, ..., inN (where N is the number of CSIFB inputs) are automatically casted to the respective
-data types expected by the IEC 61499 CSIFB. The returned output data types out1, ... outM (where N is the number of CSIFB inputs)
-depend on the corresponding IEC 61499 FB input data types. For CSIFBs with a single data input, the input in1 must be casted to the
-corresponding Matlab data type before passing it to the req() function.
-To send an array, pass the data as an Nx1 vector.
 
 Sytnax:
     >> reqNorsp(t, inData); % send data
