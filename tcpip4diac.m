@@ -606,7 +606,7 @@ classdef tcpip4diac < tcpip
                 end
                 sd = zeros(4 + arrSize * numBytes, 1, 'uint8');
                 sd(1) = 118; % Array identifier
-                sd(2) = floor(arrSize) / 256;
+                sd(2) = floor(arrSize / 256);
                 sd(3) = arrSize - sd(2) * 256;
                 sd(4) = typeID;
                 lastIdx = 4;
