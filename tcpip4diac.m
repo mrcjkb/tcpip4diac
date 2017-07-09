@@ -731,7 +731,10 @@ classdef tcpip4diac < tcpip
                     sd = fliplr(typecast(data, 'uint8'))';
                 end
             elseif strcmp(castID, 'char') % STRING
-                sd = [0; uint8(numel(data)); uint8(data)'];
+                n = numel(data);
+                lengthA = floor(n / 256);
+                lengthB = n - lengthA * 256;
+                sd = [lengthA; lengthB; uint8(data)'];
             elseif strcmp(castID, 'string') % WSTRING
                 val = char(data);
                 tmp = zeros(2*numel(val) + 1, 1, 'uint8');
