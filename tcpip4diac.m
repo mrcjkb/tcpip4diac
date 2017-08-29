@@ -422,7 +422,7 @@ classdef tcpip4diac < tcpip
             %   >> in1 = datevec(now);
             %   >> [out1, out2, out3, ..., outM] = req(t, in1);
             %
-            if nargin > 1
+            if nargin < 2
                 data = 5;
             end
             reqNorsp(obj, data) % Delegate sending to reqNorsp() method
