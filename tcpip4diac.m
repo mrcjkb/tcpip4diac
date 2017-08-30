@@ -400,6 +400,27 @@ classdef tcpip4diac < tcpip
                 end
             end
         end
+        function initWait(obj, timeoutS)
+            % INITWAIT: Attempts to open a connection. This function does
+            % not return until a connection is opened or a timeout has been
+            % exceeded.
+            %
+            % Syntax:
+            %
+            %   >> initWait(t);
+            %   >> initWait(t, timeoutS);
+            if nargin < 2
+                timeoutS = inf;
+            end
+            t = tic;
+            qo = false;
+            while ~qo
+                qo = init(obj, true);
+                if toc(t) > timeoutS
+                    error('Connection failed. Exceeded timeout.')
+                end
+            end
+        end
         function varargout = req(obj, data)
             % REQ: Sends a request to a SERVER function block.
             %      To be used by tcpip4diac obejcts in the client role
@@ -423,10 +444,11 @@ classdef tcpip4diac < tcpip
             %   >> [out1, out2, out3, ..., outM] = req(t, in1);
             %
             if nargin < 2
-                data = 5;
+                reqNorsp(obj)
+            else
+                flushinput(obj) % Flush input in case there is data left over from last response
+                reqNorsp(obj, data) % Delegate sending to reqNorsp() method
             end
-            flushinput(obj) % Flush input in case there is data left over from last response
-            reqNorsp(obj, data) % Delegate sending to reqNorsp() method
             if nargout > 0
                 [varargout{1:nargout}] = waitForData(obj);
             else
