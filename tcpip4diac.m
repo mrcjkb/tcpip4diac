@@ -425,6 +425,7 @@ classdef tcpip4diac < tcpip
             if nargin < 2
                 data = 5;
             end
+            flushinput(obj) % Flush input in case there is data left over from last response
             reqNorsp(obj, data) % Delegate sending to reqNorsp() method
             if nargout > 0
                 [varargout{1:nargout}] = waitForData(obj);
@@ -455,9 +456,8 @@ classdef tcpip4diac < tcpip
             if ~obj.roleFlag % Server object?
                 error('Method "req" only valid for client objects.')
             end
-            obj.chkNumDataInputs(data)
-            flushinput(obj) % Flush input in case there is data left over from last response
             if nargin > 1
+                obj.chkNumDataInputs(data)
                 sd = obj.matlabToByteData(data);
                 fwrite(obj, sd)
             else
