@@ -544,6 +544,7 @@ classdef tcpip4diac < tcpip
             % for additional security
             obas = max(1, obj.oByteArraySizes - 1);
             obas(isnan(obas)) = 0;
+            obas(obas == 1) = 0; % BOOL has only ID, no bytes
             oas = obj.outputArraySizes;
             ids = ones(size(oas));
             ids(oas > 1) = 4;
@@ -626,7 +627,7 @@ classdef tcpip4diac < tcpip
             % Converts IEC 61499 byte data to Matlab data (arrays and non-arrays)
             if sd(1) ~= 118 % Non-array
                 if numel(sd) == 1 % BOOL
-                    rd = sd == 64;
+                    rd = sd == 65;
                 else
                     typeID = sd(1);
                     if typeID == 80 % STRING
@@ -640,7 +641,7 @@ classdef tcpip4diac < tcpip
             else % Array
                 arrSize = sd(2) * 256 + sd(3);
                 if sd(4) == 64 || sd(4) == 65 % BOOL array
-                    rd = sd(4:end) == 64;
+                    rd = sd(4:end) == 65;
                 else
                     typeID = sd(4);
                     if typeID == 80 || typeID == 85
@@ -725,7 +726,7 @@ classdef tcpip4diac < tcpip
             % Convert to appropriate byte-data that 4diac server FB can
             % understand (non-arrays)
             if isempty(typeID) % BOOL
-                sd = 64 * data + 65 * ~data;
+                sd = 65 * data + 64 * ~data;
             elseif isnumeric(data) % SINT...UDINT / REAL & LREAL
                 if numel(data) == 6 % datevec
                     % Convert to UNIX
