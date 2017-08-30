@@ -331,8 +331,8 @@ classdef tcpip4diac < tcpip
                     obj.oByteArraySizes(i) = obj.dataTypeByteNums(tf);
                 end
                 % Increase InputBufferSize if necessary
-                if get(obj, 'InputBufferSize') < sum(obj.iByteArraySizes)
-                    set(obj, 'InputBufferSize', sum(obj.iByteArraySizes))
+                if get(obj, 'InputBufferSize') < sum(obj.oByteArraySizes)
+                    set(obj, 'InputBufferSize', sum(obj.oByteArraySizes))
                 end
             end
             if strcmp(networkRole, 'client')
@@ -413,7 +413,7 @@ classdef tcpip4diac < tcpip
                 timeoutS = inf;
             end
             t = tic;
-            qo = false;
+            qo = strcmp(get(obj, 'Status'), 'open');
             while ~qo
                 qo = init(obj, true);
                 if toc(t) > timeoutS

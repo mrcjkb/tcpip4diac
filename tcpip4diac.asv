@@ -400,6 +400,27 @@ classdef tcpip4diac < tcpip
                 end
             end
         end
+        function initWait(obj, timeoutS)
+            % INITWAIT: Attempts to open a connection. This function does
+            % not return until a connection is opened or a timeout has been
+            % exceeded.
+            %
+            % Syntax:
+            %
+            %   >> initWait(t);
+            %   >> initWait(t, timeoutS);
+            if nargin < 2
+                timeoutS = inf;
+            end
+            t = tic;
+            qo = false;
+            while ~qo && ~strcmp(get(obj, 'Status', 'open'))
+                qo = init(obj, true);
+                if toc(t) > timeoutS
+                    error('Connection failed. Exceeded timeout.')
+                end
+            end
+        end
         function varargout = req(obj, data)
             % REQ: Sends a request to a SERVER function block.
             %      To be used by tcpip4diac obejcts in the client role
@@ -423,10 +444,11 @@ classdef tcpip4diac < tcpip
             %   >> [out1, out2, out3, ..., outM] = req(t, in1);
             %
             if nargin < 2
-                data = 5;
+                reqNorsp(obj)
+            else
+                flushinput(obj) % Flush input in case there is data left over from last response
+                reqNorsp(obj, data) % Delegate sending to reqNorsp() method
             end
-            flushinput(obj) % Flush input in case there is data left over from last response
-            reqNorsp(obj, data) % Delegate sending to reqNorsp() method
             if nargout > 0
                 [varargout{1:nargout}] = waitForData(obj);
             else
@@ -544,6 +566,7 @@ classdef tcpip4diac < tcpip
             % for additional security
             obas = max(1, obj.oByteArraySizes - 1);
             obas(isnan(obas)) = 0;
+            obas(obas == 1) = 0; % BOOL has only ID, no bytes
             oas = obj.outputArraySizes;
             ids = ones(size(oas));
             ids(oas > 1) = 4;
@@ -725,7 +748,7 @@ classdef tcpip4diac < tcpip
             % Convert to appropriate byte-data that 4diac server FB can
             % understand (non-arrays)
             if isempty(typeID) % BOOL
-                sd = 64 * data + 65 * ~data;
+                sd = 65 * data + 64 * ~data;
             elseif isnumeric(data) % SINT...UDINT / REAL & LREAL
                 if numel(data) == 6 % datevec
                     % Convert to UNIX
