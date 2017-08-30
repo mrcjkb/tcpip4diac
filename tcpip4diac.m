@@ -328,7 +328,6 @@ classdef tcpip4diac < tcpip
                     else % Data output specified as value
                         obj.oByteArraySizes(i) = obj.dataTypeByteNums(tf);
                     end
-                    obj.oByteArraySizes(i) = obj.dataTypeByteNums(tf);
                 end
                 % Increase InputBufferSize if necessary
                 if get(obj, 'InputBufferSize') < sum(obj.oByteArraySizes)
