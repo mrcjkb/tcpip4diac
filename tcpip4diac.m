@@ -305,16 +305,21 @@ classdef tcpip4diac < tcpip
                     else % Data input specified as value
                         obj.iByteArraySizes(i) = obj.dataTypeByteNums(tf);
                     end
+                    % Increase OutputBufferSize if necessary
+                    % Note: Matlab's socket output is equivalent to an IEC
+                    % 61499 socket input.
+                    if get(obj, 'OutputBufferSize') < sum(obj.iByteArraySizes)
+                        set(obj, 'OutputBufferSize', sum(obj.iByteArraySizes))
+                    end
+                    % Reset byte array size to size of single element
+                    obj.iByteArraySizes(i) = obj.dataTypeByteNums(tf);
                     castID = obj.supportedMatlabTypes{tf};
                     if strcmp(castID, 'datevec')
                         castID = 'double';
                     end
                     obj.castIDs{i} = castID;
                 end
-                % Increase OutputBufferSize if necessary
-                if get(obj, 'OutputBufferSize') < sum(obj.iByteArraySizes)
-                    set(obj, 'OutputBufferSize', sum(obj.iByteArraySizes))
-                end
+                
                 obj.totalIByteArraySize = sum(obj.iByteArraySizes(~isnan(obj.iByteArraySizes)));
                 obj.oByteArraySizes = zeros(obj.numDataOutputs, 1);
                 obj.outputArraySizes = ones(obj.numDataOutputs, 1);
@@ -328,10 +333,12 @@ classdef tcpip4diac < tcpip
                     else % Data output specified as value
                         obj.oByteArraySizes(i) = obj.dataTypeByteNums(tf);
                     end
-                end
-                % Increase InputBufferSize if necessary
-                if get(obj, 'InputBufferSize') < sum(obj.oByteArraySizes)
-                    set(obj, 'InputBufferSize', sum(obj.oByteArraySizes))
+                    % Increase InputBufferSize if necessary
+                    if get(obj, 'InputBufferSize') < sum(obj.oByteArraySizes)
+                        set(obj, 'InputBufferSize', sum(obj.oByteArraySizes))
+                    end
+                    % Reset byte array size to size of single element
+                    obj.oByteArraySizes(i) = obj.dataTypeByteNums(tf);
                 end
             end
             if strcmp(networkRole, 'client')
@@ -577,8 +584,8 @@ classdef tcpip4diac < tcpip
             % Wait for arrival of all bytes being sent
             while ba == 0 || get(obj, 'BytesAvailable') > ba || ba < minExpectedBytes
                 ba = get(obj, 'BytesAvailable');
-                if toc > timeoutS
-                    error('Connection timed out.')
+                if toc > timeoutS || ~strcmp(get(obj, 'Status'), 'open')
+                    error('Connection timed out or closed.')
                 end
             end
             rd = fread(obj, ba);
@@ -798,7 +805,8 @@ classdef tcpip4diac < tcpip
         end
         function dv = unixvec2datevec(uv)
             % Unix time
-            ud = sum(uv(2:end) .* (256.^tcpip4diac.tv)); % FORTE unix data
+            startIdx = 1 * (numel(uv) == 8) + 2 * (numel(uv) == 7);
+            ud = sum(uv(startIdx:end) .* (256.^tcpip4diac.tv)); % FORTE unix data
             dv = datevec(ud / 86400000 + datenum('01-Jan-1970 01:00:00'));
         end
         function tf = validateDataInputs(x)
