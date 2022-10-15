@@ -1,4 +1,12 @@
 # tcpip4diac
+
+> [![Maintenance](https://img.shields.io/badge/Maintained%3F-no-red.svg)](https://bitbucket.org/lbesson/ansi-colors)
+>
+> __NOTE:__
+>
+> Since I no longer use Matlab, I cannot actively maintain this model.
+> I will gladly accept PRs, as long as I can review them without Matlab.
+
 Enables TCP/IP client/server connection between Matlab and 4diac Communication Service Interface Function blocks (SERVER/CLIENT).
 Subclass of Matlab's tcpip class. The transferred byte-data is automatically translated to the respective data types.
 
